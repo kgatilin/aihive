@@ -28,9 +28,37 @@ The architecture follows a microservices approach with event-driven communicatio
 
 ### Core Components
 
-![AI Agent Ecosystem](diagrams/ai_agent_ecosystem.png)
-
 #### AI Agent Ecosystem
+
+```mermaid
+graph TD
+    PM[Product Manager] --> RA[Requirements Agent]
+    RA --> RR[(Requirements Repository)]
+    RR --> OA[Orchestrator Agent]
+    OA --> SEA[Software Engineer Agent]
+    SEA --> CR[(Code Repository)]
+    SEA --> TS[Testing Suite]
+    OA --> DP[Deployment Pipeline]
+    DP --> PE[Production Environment]
+    
+    SA[System Architect] --> OA
+    QA[QA Engineer] --> SEA
+    
+    style RA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style OA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style SEA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    
+    style PM fill:#34A853,stroke:#000,stroke-width:1px,color:white
+    style SA fill:#34A853,stroke:#000,stroke-width:1px,color:white
+    style QA fill:#34A853,stroke:#000,stroke-width:1px,color:white
+    
+    style RR fill:#FBBC05,stroke:#000,stroke-width:1px
+    style CR fill:#FBBC05,stroke:#000,stroke-width:1px
+    
+    style TS fill:#9AA0A6,stroke:#000,stroke-width:1px
+    style DP fill:#9AA0A6,stroke:#000,stroke-width:1px
+    style PE fill:#9AA0A6,stroke:#000,stroke-width:1px
+```
 
 The heart of the system consists of three primary AI agent types:
 
@@ -190,37 +218,38 @@ Key architectural decisions have been documented in separate ADRs:
 
 The following diagram illustrates the high-level reference architecture for the AI-driven development pipeline:
 
-```
-                                         +-----------------+
-                                         | Product Manager |
-                                         +-----------------+
-                                                  |
-                                                  v
-+------------------+    +----------------------+    +------------------+
-| Version Control  |<-->| Requirements Agent   |<-->| Requirement      |
-| System           |    +----------------------+    | Repository       |
-+------------------+              |                 +------------------+
-        ^                         v
-        |                +----------------------+    +------------------+
-        |                | Orchestrator Agent   |<-->| Workflow         |
-        |                +----------------------+    | Database         |
-        |                         |                 +------------------+
-        |                         v
-        |                +----------------------+    +------------------+
-        +--------------->| Software Engineer    |<-->| Testing          |
-                         | Agent                |    | Framework        |
-                         +----------------------+    +------------------+
-                                  |
-                                  v
-                         +----------------------+    +------------------+
-                         | Deployment Pipeline  |<-->| Monitoring       |
-                         +----------------------+    | System           |
-                                  |                 +------------------+
-                                  v
-                         +----------------------+
-                         | Production           |
-                         | Environment          |
-                         +----------------------+
+```mermaid
+graph TD
+    PM[Product Manager] --> RA
+    
+    subgraph "AI Development Pipeline"
+    RA[Requirements Agent] <--> VCS[(Version Control System)]
+    RA <--> RR[(Requirement Repository)]
+    
+    VCS <--> SEA
+    OA[Orchestrator Agent] <--> WF[(Workflow Database)]
+    OA --> SEA[Software Engineer Agent]
+    SEA <--> TF[Testing Framework]
+    
+    SEA --> DP[Deployment Pipeline]
+    DP <--> MS[Monitoring System]
+    DP --> PROD[Production Environment]
+    end
+    
+    style RA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style OA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style SEA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    
+    style PM fill:#34A853,stroke:#000,stroke-width:1px,color:white
+    
+    style VCS fill:#FBBC05,stroke:#000,stroke-width:1px
+    style RR fill:#FBBC05,stroke:#000,stroke-width:1px
+    style WF fill:#FBBC05,stroke:#000,stroke-width:1px
+    
+    style TF fill:#9AA0A6,stroke:#000,stroke-width:1px
+    style DP fill:#9AA0A6,stroke:#000,stroke-width:1px
+    style MS fill:#9AA0A6,stroke:#000,stroke-width:1px
+    style PROD fill:#9AA0A6,stroke:#000,stroke-width:1px
 ```
 
 ## Conclusion

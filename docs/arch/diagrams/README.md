@@ -1,6 +1,81 @@
 # Architecture Diagrams
 
-This directory contains the architecture diagrams for the AI-driven development pipeline. The diagrams are organized by type and are designed to provide visual representations of the system architecture, component interactions, data flows, and deployment models.
+This document provides guidance on the management and maintenance of architecture diagrams for the AI-driven development pipeline.
+
+## Diagram Implementation
+
+All architecture diagrams are implemented as embedded [Mermaid](https://mermaid.js.org/) diagrams directly within the markdown documentation. This approach provides several advantages:
+
+1. **Diagram and documentation co-location**: Keeping diagrams with the text provides immediate context
+2. **Version control**: Diagrams are versioned along with the documentation
+3. **Easy updates**: Edit diagrams directly in the markdown files
+4. **Native GitHub rendering**: GitHub automatically renders Mermaid diagrams
+5. **No external dependencies**: No need for separate diagram files or external tools
+
+## Mermaid Diagram Examples
+
+Mermaid diagrams use a simple text-based syntax to define diagrams. Here are examples of common diagram types:
+
+### Flowchart Example
+
+```mermaid
+graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[End]
+    D --> E
+```
+
+### Sequence Diagram Example
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant System
+    User->>System: Request
+    System->>User: Response
+```
+
+### Class Diagram Example
+
+```mermaid
+classDiagram
+    class Component {
+        +property: string
+        +method(): void
+    }
+    class Subcomponent {
+        +subproperty: number
+        +submethod(): void
+    }
+    Component <|-- Subcomponent
+```
+
+## Diagram Standards
+
+When creating diagrams for the architecture documentation, follow these standards:
+
+1. **Consistency**: Use consistent styling and notation across all diagrams
+2. **Readability**: Keep diagrams focused on essential elements and avoid overcrowding
+3. **Hierarchy**: Use appropriate levels of abstraction for different documentation types
+4. **Color Coding**: Use consistent colors for similar components across diagrams
+5. **Labels and Annotations**: Ensure all elements are clearly labeled
+
+## Recommended Styling
+
+For consistency across diagrams, we recommend the following styling:
+
+- **AI Agents**: Blue (#4285F4)
+- **Human Roles**: Green (#34A853)
+- **Data Stores**: Yellow (#FBBC05)
+- **Infrastructure Components**: Gray (#9AA0A6)
+
+## Mermaid Resources
+
+- [Mermaid Official Documentation](https://mermaid.js.org/intro/)
+- [Mermaid Live Editor](https://mermaid.live/) - Test and develop diagrams interactively
+- [GitHub Mermaid Support Documentation](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)
 
 ## Diagram Types
 

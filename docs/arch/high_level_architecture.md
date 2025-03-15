@@ -10,7 +10,35 @@ The architecture consists of the following core components:
 
 ### 1. AI Agent Ecosystem
 
-![AI Agent Ecosystem](../arch/diagrams/ai_agent_ecosystem.png)
+```mermaid
+graph TD
+    PM[Product Manager] --> RA[Requirements Agent]
+    RA --> RR[(Requirements Repository)]
+    RR --> OA[Orchestrator Agent]
+    OA --> SEA[Software Engineer Agent]
+    SEA --> CR[(Code Repository)]
+    SEA --> TS[Testing Suite]
+    OA --> DP[Deployment Pipeline]
+    DP --> PE[Production Environment]
+    
+    SA[System Architect] --> OA
+    QA[QA Engineer] --> SEA
+    
+    style RA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style OA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style SEA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    
+    style PM fill:#34A853,stroke:#000,stroke-width:1px,color:white
+    style SA fill:#34A853,stroke:#000,stroke-width:1px,color:white
+    style QA fill:#34A853,stroke:#000,stroke-width:1px,color:white
+    
+    style RR fill:#FBBC05,stroke:#000,stroke-width:1px
+    style CR fill:#FBBC05,stroke:#000,stroke-width:1px
+    
+    style TS fill:#9AA0A6,stroke:#000,stroke-width:1px
+    style DP fill:#9AA0A6,stroke:#000,stroke-width:1px
+    style PE fill:#9AA0A6,stroke:#000,stroke-width:1px
+```
 
 #### 1.1 Product Requirements Agent
 - **Purpose**: Transforms unstructured requirements into structured, AI-readable product specifications
