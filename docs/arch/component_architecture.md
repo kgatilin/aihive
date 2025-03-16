@@ -25,13 +25,19 @@ This document outlines the key components of the AI-driven development pipeline,
 - **Implementation**: Similar to Jira or other issue tracking systems
 - **Task Statuses**:
   - Verifying PRD - Initial validation of product requirements
+  - PRD Needs Update - Feedback indicates PRD requires changes
   - Verifying Acceptance Criteria - Ensuring clear success metrics
+  - Acceptance Criteria Need Update - Feedback indicates criteria require refinement
   - Verifying Architecture - Reviewing the proposed technical approach
+  - Architecture Needs Revision - Feedback indicates architecture plan needs changes
   - Verifying Execution Plan - Evaluating the implementation strategy
+  - Execution Plan Needs Revision - Feedback indicates execution plan needs changes
   - Queued for Development - Ready to be picked up by coding agent
   - In Development - Currently being implemented
+  - Implementation Needs Fixes - Code requires changes based on feedback
   - Code Review - Awaiting human validation
   - Testing - Undergoing automated testing
+  - Tests Need Updates - Test failures require addressing
   - Ready for Deployment - Verified and ready to deploy
   - Deployed - Live in production
 - **Key Features**:
@@ -76,26 +82,41 @@ This document outlines the key components of the AI-driven development pipeline,
 ```mermaid
 stateDiagram-v2
     [*] --> VerifyingPRD
+    
+    VerifyingPRD --> PRDNeedsUpdate: Feedback received
+    PRDNeedsUpdate --> VerifyingPRD: Updated
+    
     VerifyingPRD --> VerifyingAcceptanceCriteria: PRD validated
+    
+    VerifyingAcceptanceCriteria --> AcceptanceCriteriaNeedUpdate: Feedback received
+    AcceptanceCriteriaNeedUpdate --> VerifyingAcceptanceCriteria: Updated
+    
     VerifyingAcceptanceCriteria --> VerifyingArchitecture: Criteria validated
+    
+    VerifyingArchitecture --> ArchitectureNeedsRevision: Feedback received
+    ArchitectureNeedsRevision --> VerifyingArchitecture: Updated
+    
     VerifyingArchitecture --> VerifyingExecutionPlan: Architecture validated
+    
+    VerifyingExecutionPlan --> ExecutionPlanNeedsRevision: Feedback received
+    ExecutionPlanNeedsRevision --> VerifyingExecutionPlan: Updated
+    
     VerifyingExecutionPlan --> QueuedForDevelopment: Plan validated
     QueuedForDevelopment --> InDevelopment: Picked up by Coding Agent
+    
+    InDevelopment --> ImplementationNeedsFixes: Issues found
+    ImplementationNeedsFixes --> InDevelopment: Fixed
+    
     InDevelopment --> CodeReview: Implementation complete
+    CodeReview --> ImplementationNeedsFixes: Changes requested
+    
     CodeReview --> Testing: Code validated
+    Testing --> TestsNeedUpdates: Tests failed
+    TestsNeedUpdates --> Testing: Fixed
+    
     Testing --> ReadyForDeployment: Tests passed
     ReadyForDeployment --> Deployed: Deployment complete
     Deployed --> [*]
-    
-    VerifyingPRD --> Blocked: Issues found
-    VerifyingAcceptanceCriteria --> Blocked: Issues found
-    VerifyingArchitecture --> Blocked: Issues found
-    VerifyingExecutionPlan --> Blocked: Issues found
-    InDevelopment --> Blocked: Implementation issues
-    CodeReview --> InDevelopment: Changes requested
-    Testing --> InDevelopment: Tests failed
-    
-    Blocked --> VerifyingPRD: Issues resolved
 ```
 
 ### Component Interaction Flow
@@ -115,10 +136,25 @@ sequenceDiagram
     TTS->>PA: Assign for PRD verification
     PA->>Git: Fetch PRD markdown
     PA->>TTS: Update status (VerifyingPRD)
+    
+    alt PRD needs clarification
+        PA->>HI: Request clarification
+        User->>HI: Provide feedback
+        HI->>TTS: Update status (PRDNeedsUpdate)
+        PA->>Git: Update PRD
+        PA->>TTS: Update status (VerifyingPRD)
+    end
+    
     PA->>TTS: Update status (VerifyingAcceptanceCriteria)
-    PA->>HI: Request clarification (if needed)
-    User->>HI: Provide clarification
-    HI->>TTS: Update task
+    
+    alt Acceptance criteria need refinement
+        PA->>HI: Request feedback on criteria
+        User->>HI: Provide feedback
+        HI->>TTS: Update status (AcceptanceCriteriaNeedUpdate)
+        PA->>TTS: Update criteria
+        PA->>TTS: Update status (VerifyingAcceptanceCriteria)
+    end
+    
     PA->>TTS: Submit structured requirements
     TTS->>HI: Request validation
     User->>HI: Approve requirements
@@ -127,23 +163,61 @@ sequenceDiagram
     TTS->>CA: Assign for architecture proposal
     CA->>TTS: Submit architecture plan
     TTS->>HI: Request architecture validation
+    
+    alt Architecture needs revision
+        User->>HI: Provide architecture feedback
+        HI->>TTS: Update status (ArchitectureNeedsRevision)
+        CA->>TTS: Update architecture
+        CA->>TTS: Update status (VerifyingArchitecture)
+    end
+    
     User->>HI: Approve architecture
     HI->>TTS: Update status (VerifyingExecutionPlan)
     
     CA->>TTS: Submit execution plan
     TTS->>HI: Request plan validation
+    
+    alt Execution plan needs revision
+        User->>HI: Provide execution plan feedback
+        HI->>TTS: Update status (ExecutionPlanNeedsRevision)
+        CA->>TTS: Update execution plan
+        CA->>TTS: Update status (VerifyingExecutionPlan)
+    end
+    
     User->>HI: Approve execution plan
     HI->>TTS: Update status (QueuedForDevelopment)
     
     TTS->>CA: Assign for development
     CA->>TTS: Update status (InDevelopment)
+    
+    alt Implementation issues
+        CA->>TTS: Update status (ImplementationNeedsFixes)
+        CA->>Git: Fix code
+        CA->>TTS: Update status (InDevelopment)
+    end
+    
     CA->>Git: Commit code
     CA->>TTS: Update status (CodeReview)
     TTS->>HI: Request code review
+    
+    alt Code changes requested
+        User->>HI: Request code changes
+        HI->>TTS: Update status (ImplementationNeedsFixes)
+        CA->>Git: Update code
+        CA->>TTS: Update status (CodeReview)
+    end
+    
     User->>HI: Approve code
     HI->>TTS: Update status (Testing)
     
     CA->>TTS: Submit test results
+    
+    alt Tests failed
+        CA->>TTS: Update status (TestsNeedUpdates)
+        CA->>Git: Fix issues
+        CA->>TTS: Update status (Testing)
+    end
+    
     TTS->>HI: Present test results
     User->>HI: Approve for deployment
     HI->>TTS: Update status (ReadyForDeployment)
