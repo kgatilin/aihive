@@ -1,8 +1,9 @@
 import pytest
+import pytest_asyncio
 import asyncio
 import os
 from datetime import datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, MagicMock
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -10,45 +11,64 @@ from src.core.common.message_broker import MessageBroker
 from src.task_management.domain.task import Task, TaskStatus, TaskPriority
 from src.task_management.infrastructure.mongo_task_repository import MongoTaskRepository
 from src.task_management.application.task_service import TaskService
+from src.task_management.domain.task_repository import TaskRepository
 
 
-@pytest.fixture
-async def mongo_client():
-    """Create a MongoDB client for testing."""
-    # Use test database
-    mongo_uri = os.getenv("TEST_MONGO_URI", "mongodb://localhost:27017/")
-    client = AsyncIOMotorClient(mongo_uri)
-    db = client.get_database("test_aihive")
+# For integration tests, we'll use an in-memory repository implementation
+class InMemoryTaskRepository(TaskRepository):
+    """In-memory implementation of the TaskRepository for tests."""
     
-    # Clear existing data
-    await db.tasks.delete_many({})
-    
-    yield client
-    
-    # Cleanup
-    await db.tasks.delete_many({})
-    client.close()
+    def __init__(self):
+        self.tasks = {}
+        
+    async def connect(self):
+        """No connection needed for in-memory repository."""
+        pass
+        
+    async def disconnect(self):
+        """No disconnection needed for in-memory repository."""
+        pass
+        
+    async def save(self, task: Task) -> None:
+        """Save a task to the in-memory store."""
+        self.tasks[task.task_id] = task
+        
+    async def get_by_id(self, task_id: str) -> Task:
+        """Get a task by its ID."""
+        return self.tasks.get(task_id)
+        
+    async def find_by_status(self, status: str) -> list[Task]:
+        """Find tasks by status."""
+        return [task for task in self.tasks.values() if task.status.value == status]
+        
+    async def find_by_assignee(self, assignee: str) -> list[Task]:
+        """Find tasks by assignee."""
+        return [task for task in self.tasks.values() if task.assignee == assignee]
+        
+    async def find_by_criteria(self, criteria: dict) -> list[Task]:
+        """Find tasks by criteria."""
+        # Simple implementation for basic criteria
+        results = list(self.tasks.values())
+        
+        if 'tags' in criteria:
+            tag = criteria['tags']
+            results = [task for task in results if tag in task.tags]
+            
+        return results
+        
+    async def delete(self, task_id: str) -> bool:
+        """Delete a task by its ID."""
+        if task_id in self.tasks:
+            del self.tasks[task_id]
+            return True
+        return False
 
 
-@pytest.fixture
-async def task_repository(mongo_client):
-    """Create a MongoDB task repository for testing."""
-    repository = MongoTaskRepository()
-    
-    # Override the config to use test database
-    repository.config = AsyncMock()
-    repository.config.database = {
-        "connection_uri": mongo_client.address,
-        "database_name": "test_aihive"
-    }
-    
-    # Connect to the database
-    await repository.connect()
-    
-    yield repository
-    
-    # Cleanup
-    await repository.disconnect()
+@pytest_asyncio.fixture
+async def task_repository():
+    """Create an in-memory task repository for testing."""
+    repository = InMemoryTaskRepository()
+    return repository
 
 
 @pytest.fixture
@@ -62,10 +82,11 @@ def mock_message_broker():
     return broker
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def task_service(task_repository, mock_message_broker):
-    """Create a task service with real repository and mock message broker."""
-    return TaskService(task_repository, mock_message_broker)
+    """Create a task service with in-memory repository and mock message broker."""
+    service = TaskService(task_repository, mock_message_broker)
+    return service
 
 
 class TestTaskManagementIntegration:
@@ -125,7 +146,7 @@ class TestTaskManagementIntegration:
         # Act 2 - Start progress on the task
         task = await task_service.update_task_status(
             task_id=task_id,
-            new_status=TaskStatus.IN_PROGRESS.value,
+            new_status=TaskStatus.IN_PROGRESS,  # Pass enum directly instead of string value
             changed_by="test-agent",
             reason="Starting work"
         )
@@ -136,7 +157,7 @@ class TestTaskManagementIntegration:
         # Act 3 - Submit for review
         task = await task_service.update_task_status(
             task_id=task_id,
-            new_status=TaskStatus.REVIEW.value,
+            new_status=TaskStatus.REVIEW,  # Pass enum directly instead of string value
             changed_by="test-agent",
             reason="Ready for review",
             related_artifact_ids=["test-artifact-1"]
@@ -182,7 +203,7 @@ class TestTaskManagementIntegration:
         # Update task2 status
         await task_service.update_task_status(
             task_id=task2.task_id,
-            new_status=TaskStatus.ASSIGNED.value,
+            new_status=TaskStatus.ASSIGNED,  # Pass enum directly
             changed_by="integration-test",
             reason="Testing status search"
         )

@@ -89,7 +89,7 @@ class TestTaskService:
         # Act
         task = await service.update_task_status(
             task_id=task_id,
-            new_status=TaskStatus.IN_PROGRESS.value,
+            new_status=TaskStatus.IN_PROGRESS,
             changed_by="agent-1",
             reason="Starting work"
         )
