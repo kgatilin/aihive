@@ -2,7 +2,7 @@
 
 ## Overview
 
-Phase 1 focuses on implementing the foundation of the AI-driven development pipeline, with particular emphasis on the product refinement workflow. This phase will establish the basic backbone of the system using LangChain, implementing the Human Interface, Task Tracking System, Orchestrator Agent, and Product Manager Agent.
+Phase 1 focuses on implementing the foundation of the AI-driven development pipeline, with particular emphasis on the product refinement workflow. This phase will establish the basic backbone of the system, implementing the Human Interface, Task Tracking System, Orchestrator Agent, and Product Manager Agent.
 
 ## Goals
 
@@ -11,22 +11,59 @@ Phase 1 focuses on implementing the foundation of the AI-driven development pipe
 - Enable PRD creation and refinement
 - Establish communication between Human Interface and AI agents
 
+## Domain Model
+
+### Bounded Contexts
+
+1. **Human Interaction Context**
+   - Responsible for user interactions through various channels
+   - Manages message formatting and notification delivery
+   - Adapts external communication protocols to internal formats
+
+2. **Task Management Context**
+   - Tracks the lifecycle of work items through the system
+   - Manages task state transitions and history
+   - Provides query capabilities for task status and attributes
+
+3. **Product Definition Context**
+   - Manages structured product requirement documents
+   - Handles versioning and storage of requirements
+   - Processes clarification requests and responses
+
+4. **Orchestration Context**
+   - Coordinates the overall workflow between contexts
+   - Routes messages and commands to appropriate domains
+   - Maintains the state machine of business processes
+
+### Domain Events
+
+The system uses an event-driven architecture with the following core events:
+
+1. **User Request Submitted**: Triggered when a user submits a new request
+2. **Task Created**: Triggered when a new task is created from a request
+3. **PRD Development Needed**: Triggered when a task requires PRD creation
+4. **Clarification Requested**: Triggered when more information is needed
+5. **Clarification Provided**: Triggered when a user responds to clarification
+6. **PRD Created**: Triggered when a product requirements document is finished
+7. **PRD Updated**: Triggered when a product requirements document is modified
+8. **Task Status Updated**: Triggered when a task changes status
+
 ## Architecture Components
 
 ### System Architecture
 
 ```mermaid
 graph TD
-    HI[Human Interface] -->|Forward Messages| HA[Human Interface API]
-    HA -->|Messages| OA[Orchestrator Agent]
-    OA -->|Task Updates| TS[Task Storage API]
-    OA -->|Assign PRD Task| PM[Product Manager Agent]
-    PM -->|Store PRD| PS[PRD Storage API]
-    PM -->|Task Updates| OA
-    OA -->|Status Updates| HA
-    HA -->|Notifications| HI
+    HI[Human Interface] -->|Domain Events| HA[Human Interface API]
+    HA -->|Commands| OA[Orchestration Service]
+    OA -->|Commands| TS[Task Service]
+    OA -->|Commands| PM[Product Definition Service]
+    PM -->|Domain Events| OA
+    TS -->|Domain Events| OA
+    OA -->|Domain Events| HA
+    HA -->|Commands| HI
     
-    subgraph "Adapters"
+    subgraph "Adapters Layer"
         SA[Slack Adapter]
         RA[Redis Adapter]
         GA[Git Adapter]
@@ -34,204 +71,151 @@ graph TD
     
     SA -.->|Implements| HI
     RA -.->|Implements| TS
-    GA -.->|Implements| PS
+    GA -.->|Implements| PM
 ```
 
-### Component Details
+### Strategic Domain Design
 
-1. **Human Interface API**
-   - Abstract interface for user interactions
-   - Support for receiving messages, providing notifications
-   - Extension points for different UI implementations
+#### Aggregates
 
-2. **Slack Adapter**
-   - Implementation of Human Interface API for Slack
-   - Translates Slack-specific formats to internal formats
-   - Handles Slack authentication and channel management
+1. **Task Aggregate**
+   - Root: Task
+   - Entities: Comment, TaskHistory
+   - Value Objects: TaskStatus, TaskPriority
+   - Invariants: Task must always have a status
 
-3. **Task Storage API**
-   - Abstract interface for task tracking
-   - Support for CRUD operations on tasks
-   - Query functionality for task status and history
+2. **Product Requirement Aggregate**
+   - Root: ProductRequirement
+   - Entities: RequirementVersion, ClarificationRequest
+   - Value Objects: RequirementType, RequirementPriority
+   - Invariants: A requirement must have at least one version
 
-4. **Redis Adapter**
-   - Implementation of Task Storage API using Redis
-   - Task data serialization/deserialization
-   - Simple key-value storage patterns
+3. **User Interaction Aggregate**
+   - Root: Conversation
+   - Entities: Message, Notification
+   - Value Objects: MessageType, NotificationType
+   - Invariants: Messages must belong to a conversation
 
-5. **PRD Storage API**
-   - Abstract interface for PRD document storage
-   - Support for versioning, updating, and retrieving PRDs
-   - Abstraction for different storage backends
+#### Repositories
 
-6. **Git Adapter**
-   - Implementation of PRD Storage API using Git
-   - Handles markdown file operations
-   - Manages commits and versioning
+1. **TaskRepository**: Provides access to Task aggregates
+2. **ProductRequirementRepository**: Provides access to ProductRequirement aggregates
+3. **ConversationRepository**: Provides access to Conversation aggregates
 
-7. **Orchestrator Agent**
-   - Central coordinator for workflow
-   - Routes messages to appropriate agents
-   - Manages task state transitions
-   - Communicates status updates to Human Interface
+#### Domain Services
 
-8. **Product Manager Agent**
-   - Specialized agent for PRD creation and refinement
-   - NLP processing to understand requirements
-   - Creates structured PRD documents
-   - Identifies clarification needs
+1. **WorkflowOrchestrationService**: Coordinates the overall workflow
+2. **RequirementAnalysisService**: Analyzes and structures requirements
+3. **ClarificationService**: Manages clarification requests and responses
+4. **NotificationService**: Routes notifications to appropriate channels
 
-## Implementation Details
+### Tactical Design
 
-### Workflow Implementation
+#### Human Interface API (Port)
+
+- **Responsibility**: Provide abstraction for user interaction
+- **Key Methods**: 
+  - Send message to user
+  - Send notification to user
+  - Register message handler
+  - Start event listener
+
+#### Task Service API (Port)
+
+- **Responsibility**: Manage task lifecycle
+- **Key Methods**:
+  - Create task
+  - Update task status
+  - Add comment to task
+  - Query tasks by status or user
+
+#### Product Definition API (Port)
+
+- **Responsibility**: Manage product requirements
+- **Key Methods**:
+  - Create product requirement
+  - Update product requirement
+  - Request clarification
+  - Get requirement history
+
+#### Orchestration API (Port)
+
+- **Responsibility**: Coordinate workflow between domains
+- **Key Methods**:
+  - Process incoming message
+  - Route event to appropriate domain service
+  - Manage workflow state transitions
+  - Handle error conditions
+
+## Workflow Implementation
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant Slack as Slack Interface
-    participant Orchestrator
-    participant PM as Product Manager Agent
-    participant Redis as Task Storage
-    participant Git as PRD Storage
+    participant HI as Human Interface
+    participant OS as Orchestration Service
+    participant TS as Task Service
+    participant PDS as Product Definition Service
     
-    User->>Slack: Submit new request
-    Slack->>Orchestrator: Forward request
-    Orchestrator->>Redis: Create new task
-    Orchestrator->>Redis: Update status (NeedPRDDev)
-    Orchestrator->>PM: Assign task
+    User->>HI: Submit new request
+    HI->>OS: UserRequestSubmitted event
+    OS->>TS: CreateTask command
+    TS-->>OS: TaskCreated event
+    OS->>TS: UpdateTaskStatus command (NeedPRDDev)
+    OS->>PDS: AnalyzeRequirement command
     
     alt Requires Clarification
-        PM->>Orchestrator: Request clarification
-        Orchestrator->>Redis: Add comment to task
-        Orchestrator->>Slack: Send clarification request
-        User->>Slack: Provide clarification
-        Slack->>Orchestrator: Forward clarification
-        Orchestrator->>PM: Forward clarification
+        PDS->>OS: ClarificationNeeded event
+        OS->>TS: UpdateTaskStatus command (ClarificationRequested)
+        OS->>HI: RequestClarification command
+        HI->>User: Send clarification request
+        User->>HI: Provide clarification
+        HI->>OS: ClarificationProvided event
+        OS->>PDS: ProcessClarification command
     end
     
-    PM->>Git: Store PRD document
-    PM->>Orchestrator: Report PRD creation
-    Orchestrator->>Redis: Update status (PRDCreated)
-    Orchestrator->>Slack: Notify PRD creation
-    User->>Slack: Request PRD review
-    Slack->>Orchestrator: Forward request
-    Orchestrator->>Git: Retrieve PRD
-    Orchestrator->>Slack: Send PRD for review
-```
-
-### LangChain Implementation
-
-1. **Agent Implementation**
-   - Use LangChain's agent framework for Orchestrator and Product Manager
-   - Implement custom tools for task management and PRD creation
-   - Use Chain of Thought for clarification decision making
-
-2. **Message Handling**
-   - Implement message routing with LangChain's message history
-   - Maintain conversation context across interactions
-   - Structure prompts for specific agent roles
-
-3. **Task State Management**
-   - Define task states (NeedPRDDev, ClarificationRequested, PRDCreated, etc.)
-   - Implement state transitions based on agent outputs
-   - Persist state in Task Storage
-
-### API Design
-
-#### Human Interface API
-
-```python
-class HumanInterface:
-    def send_message(self, user_id: str, message: str) -> bool:
-        """Send a message to a user"""
-        pass
-        
-    def send_notification(self, user_id: str, notification_type: str, data: dict) -> bool:
-        """Send a notification to a user"""
-        pass
-        
-    def register_message_handler(self, handler: Callable[[str, str], None]) -> None:
-        """Register a callback for incoming messages"""
-        pass
-```
-
-#### Task Storage API
-
-```python
-class TaskStorage:
-    def create_task(self, title: str, description: str, user_id: str) -> str:
-        """Create a new task and return task_id"""
-        pass
-        
-    def update_task_status(self, task_id: str, status: str) -> bool:
-        """Update task status"""
-        pass
-        
-    def add_comment(self, task_id: str, comment: str, author: str) -> bool:
-        """Add a comment to a task"""
-        pass
-        
-    def get_task(self, task_id: str) -> dict:
-        """Get task details"""
-        pass
-        
-    def query_tasks(self, status: str = None, user_id: str = None) -> List[dict]:
-        """Query tasks by criteria"""
-        pass
-```
-
-#### PRD Storage API
-
-```python
-class PRDStorage:
-    def create_prd(self, task_id: str, title: str, content: str) -> str:
-        """Create a new PRD and return prd_id"""
-        pass
-        
-    def update_prd(self, prd_id: str, content: str) -> bool:
-        """Update PRD content"""
-        pass
-        
-    def get_prd(self, prd_id: str) -> dict:
-        """Get PRD details and content"""
-        pass
-        
-    def get_prd_history(self, prd_id: str) -> List[dict]:
-        """Get PRD version history"""
-        pass
+    PDS->>OS: PRDCreated event
+    OS->>TS: UpdateTaskStatus command (PRDCreated)
+    OS->>HI: SendNotification command
+    HI->>User: Notify PRD creation
+    User->>HI: Request PRD review
+    HI->>OS: PRDReviewRequested event
+    OS->>PDS: GetPRD command
+    PDS-->>OS: PRD data
+    OS->>HI: SendPRD command
+    HI->>User: Send PRD for review
 ```
 
 ## Implementation Plan
 
-### Week 1-2: Setup and API Implementation
+### Week 1-2: Domain Model Implementation
 
-- Set up project structure and dependencies
-- Implement Human Interface API
-- Implement basic Slack adapter
-- Implement Task Storage API with Redis adapter
-- Implement PRD Storage API with Git adapter
-- Create tests for all APIs
+- Define bounded contexts and interfaces
+- Implement core domain entities and value objects
+- Define repositories and persistence abstraction
+- Create initial domain services
+- Implement event system for domain events
 
 ### Week 3-4: Agent Implementation
 
-- Implement Orchestrator Agent using LangChain
-- Implement Product Manager Agent using LangChain
-- Create prompts and tools for both agents
-- Implement basic message routing
-- Test agent interactions with mock interfaces
+- Implement AI-based domain services
+- Define agent responsibility boundaries
+- Create agent tools and reasoning capabilities
+- Implement prompt engineering templates
+- Test agent decision-making processes
 
 ### Week 5-6: Workflow Integration
 
-- Connect all components in the workflow
-- Implement task state management
-- Add error handling and retry logic
-- Implement conversation context management
-- Create end-to-end tests
+- Connect domain contexts through events
+- Implement workflow state machine
+- Create adapters for external systems
+- Implement error handling and recovery mechanisms
+- Set up event monitoring and logging
 
 ### Week 7-8: Refinement and Documentation
 
-- Polish user experience in Slack interface
-- Optimize prompt engineering for better results
+- Polish user experience
+- Optimize agent prompts and tools
 - Improve error handling and edge cases
 - Create comprehensive documentation
 - Prepare for demo and user testing
@@ -241,7 +225,7 @@ class PRDStorage:
 - A user can submit a new request via Slack
 - The system creates a task and assigns it to the Product Manager Agent
 - The Product Manager Agent can create a PRD or request clarifications
-- PRDs are stored in Git with proper versioning
+- PRDs are stored with proper versioning
 - The user receives notifications about task status changes
 - The system maintains conversation context across interactions
 - PRDs are well-structured and follow a consistent format

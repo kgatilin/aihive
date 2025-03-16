@@ -2,7 +2,7 @@
 
 ## Overview
 
-Phase 2 builds upon the foundation established in Phase 1 by implementing the code generation workflow. This phase focuses on enhancing the Orchestrator Agent and adding the Coding Agent to generate implementation code based on approved PRDs.
+Phase 2 builds upon the foundation established in Phase 1 by implementing the code generation workflow. This phase focuses on enhancing the Orchestration Context and adding the Code Generation Context to transform approved Product Requirements into implementation code.
 
 ## Goals
 
@@ -11,25 +11,65 @@ Phase 2 builds upon the foundation established in Phase 1 by implementing the co
 - Create a flexible, extensible Coding Agent
 - Implement code storage and versioning
 
-## Architecture Components
+## Domain Model Extensions
+
+### New Bounded Contexts
+
+1. **Code Generation Context**
+   - Responsible for transforming requirements into code
+   - Manages code structure and organization
+   - Handles code testing and validation
+
+2. **Code Storage Context**
+   - Manages code repositories and versioning
+   - Handles branching and merging strategies
+   - Maintains code history and traceability
+
+### Enhanced Existing Contexts
+
+1. **Orchestration Context** (Enhanced)
+   - Extended to support code generation workflow
+   - Manages human validation checkpoints
+   - Coordinates between Product Definition and Code Generation
+
+2. **Human Interaction Context** (Enhanced)
+   - Extended with code review capabilities
+   - Added implementation approval workflows
+   - Enhanced notification system for code events
+
+### Additional Domain Events
+
+1. **PRD Approved**: Triggered when a PRD is approved for implementation
+2. **Architecture Design Started**: Triggered when architecture design begins
+3. **Architecture Design Completed**: Triggered when architecture design is ready for review
+4. **Architecture Approved**: Triggered when architecture is approved
+5. **Implementation Started**: Triggered when code implementation begins
+6. **Implementation Completed**: Triggered when implementation is ready for review
+7. **Code Changes Requested**: Triggered when code review suggests changes
+8. **Implementation Approved**: Triggered when code is approved
+9. **Tests Generated**: Triggered when tests are created for the implementation
+10. **Integration Ready**: Triggered when code is ready for integration
+
+## Extended Architecture
 
 ### System Architecture
 
 ```mermaid
 graph TD
-    HI[Human Interface] -->|Forward Messages| HA[Human Interface API]
-    HA -->|Messages| OA[Orchestrator Agent]
-    OA -->|Task Updates| TS[Task Storage API]
-    OA -->|Assign PRD Task| PM[Product Manager Agent]
-    OA -->|Assign Coding Task| CA[Coding Agent]
-    PM -->|Store PRD| PS[PRD Storage API]
-    CA -->|Store Code| CS[Code Storage API]
-    PM -->|Task Updates| OA
-    CA -->|Task Updates| OA
-    OA -->|Status Updates| HA
-    HA -->|Notifications| HI
+    HI[Human Interface] -->|Domain Events| HA[Human Interface API]
+    HA -->|Commands| OA[Orchestration Service]
+    OA -->|Commands| TS[Task Service]
+    OA -->|Commands| PD[Product Definition Service]
+    OA -->|Commands| CG[Code Generation Service]
+    PD -->|Domain Events| OA
+    CG -->|Domain Events| OA
+    TS -->|Domain Events| OA
+    OA -->|Domain Events| HA
+    HA -->|Commands| HI
+    CG -->|Commands| CS[Code Storage Service]
+    CS -->|Domain Events| CG
     
-    subgraph "Adapters"
+    subgraph "Adapters Layer"
         SA[Slack Adapter]
         RA[Redis Adapter]
         GA[Git Adapter]
@@ -37,247 +77,229 @@ graph TD
     
     SA -.->|Implements| HI
     RA -.->|Implements| TS
-    GA -.->|Implements| PS
+    GA -.->|Implements| PD
     GA -.->|Implements| CS
 ```
 
-### New/Enhanced Components
+### Strategic Domain Design
 
-1. **Coding Agent**
-   - Specialized agent for code generation
-   - Analyzes structured PRDs
-   - Generates implementation code
-   - Creates unit tests for generated code
-   - Handles code review feedback
+#### New Aggregates
 
-2. **Code Storage API**
-   - Abstract interface for code storage
-   - Support for versioning and branching
-   - Code structure and organization
-   - Integration with Git or other VCS
+1. **Code Repository Aggregate**
+   - Root: CodeRepository
+   - Entities: CodeFile, CommitHistory
+   - Value Objects: FilePath, CommitMessage
+   - Invariants: Repository must have a valid structure
 
-3. **Enhanced Orchestrator Agent**
-   - Support for code generation workflow
-   - Human validation checkpoint management
-   - State tracking for development tasks
-   - Error handling and recovery logic
+2. **Architecture Design Aggregate**
+   - Root: ArchitectureDesign
+   - Entities: Component, Interface
+   - Value Objects: ComponentRelationship, DesignPrinciple
+   - Invariants: Components must have defined interfaces
 
-4. **Enhanced Human Interface**
-   - Code review interface
-   - PRD approval screens
-   - More detailed notifications
-   - Implementation plan review
+3. **Implementation Plan Aggregate**
+   - Root: ImplementationPlan
+   - Entities: CodeTask, TestTask
+   - Value Objects: TaskPriority, TaskDependency
+   - Invariants: Tasks must have dependencies resolved
 
-## Implementation Details
+#### Enhanced Domain Services
 
-### Enhanced Workflow
+1. **ValidationCheckpointService**: Manages human validation points in the workflow
+2. **CodeGenerationService**: Transforms requirements into implementable code
+3. **ArchitectureDesignService**: Creates software architecture from requirements
+4. **CodeReviewService**: Manages code review process and feedback
+5. **TestGenerationService**: Creates tests for implemented code
+6. **CodeStorageService**: Manages code versioning and organization
+
+### Tactical Design
+
+#### Code Generation API (Port)
+
+- **Responsibility**: Transform requirements into code
+- **Key Methods**:
+  - Generate architecture design
+  - Generate implementation code
+  - Generate test code
+  - Process feedback
+  - Estimate implementation scope
+
+#### Code Storage API (Port)
+
+- **Responsibility**: Manage code repositories
+- **Key Methods**:
+  - Create repository
+  - Commit changes
+  - Create branch
+  - Merge changes
+  - Retrieve file or directory
+
+#### Enhanced Human Interface API (Port)
+
+- **Responsibility**: Handle enriched user interactions
+- **Key Methods**:
+  - Request code review
+  - Display code diffs
+  - Present architecture diagrams
+  - Request implementation approval
+  - Register approval handlers
+
+#### Enhanced Orchestration API (Port)
+
+- **Responsibility**: Coordinate expanded workflow
+- **Key Methods**:
+  - Manage validation checkpoints
+  - Route code generation tasks
+  - Handle review feedback
+  - Coordinate between contexts
+  - Manage workflow transitions
+
+## Enhanced Workflow
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant Interface as Human Interface
-    participant Orchestrator
-    participant PM as Product Manager Agent
-    participant CA as Coding Agent
-    participant TaskStore as Task Storage
-    participant PRDStore as PRD Storage
-    participant CodeStore as Code Storage
+    participant HI as Human Interface
+    participant OS as Orchestration Service
+    participant TS as Task Service
+    participant PD as Product Definition Service
+    participant CG as Code Generation Service
+    participant CS as Code Storage Service
     
-    Note over User,CodeStore: PRD Creation Flow (From Phase 1)
-    User->>Interface: Submit new request
-    Interface->>Orchestrator: Forward request
-    Orchestrator->>TaskStore: Create task
-    Orchestrator->>PM: Assign PRD development
-    PM->>PRDStore: Create/update PRD
-    PM->>Orchestrator: PRD ready for review
-    Orchestrator->>Interface: Request PRD approval
+    Note over User,CS: PRD Creation Flow (From Phase 1)
     
-    Note over User,CodeStore: PRD Approval Flow
-    User->>Interface: Approve PRD
-    Interface->>Orchestrator: Submit approval
-    Orchestrator->>TaskStore: Update status (PRDApproved)
+    User->>HI: Approve PRD
+    HI->>OS: PRDApproved event
+    OS->>TS: UpdateTaskStatus command (PRDApproved)
     
-    Note over User,CodeStore: Code Generation Flow
-    Orchestrator->>CA: Assign architecture design
-    CA->>Orchestrator: Submit architecture plan
-    Orchestrator->>Interface: Request architecture review
-    User->>Interface: Approve architecture
-    Interface->>Orchestrator: Submit approval
+    Note over User,CS: Architecture Design Flow
     
-    Orchestrator->>CA: Generate implementation
-    CA->>CodeStore: Create implementation files
-    CA->>Orchestrator: Submit implementation
-    Orchestrator->>TaskStore: Update status (PendingCodeReview)
-    Orchestrator->>Interface: Request code review
+    OS->>CG: DesignArchitecture command
+    CG->>CS: CreateRepository command
+    CS-->>CG: RepositoryCreated event
+    CG->>CS: CommitArchitectureDesign command
+    CG->>OS: ArchitectureDesignCompleted event
+    OS->>HI: RequestArchitectureReview command
+    HI->>User: Present architecture for review
+    
+    User->>HI: Approve architecture
+    HI->>OS: ArchitectureApproved event
+    
+    Note over User,CS: Implementation Flow
+    
+    OS->>CG: GenerateImplementation command
+    CG->>CS: CommitImplementationFiles command
+    CG->>OS: ImplementationCompleted event
+    OS->>TS: UpdateTaskStatus command (PendingCodeReview)
+    OS->>HI: RequestCodeReview command
+    HI->>User: Present code for review
     
     alt Code needs changes
-        User->>Interface: Request code changes
-        Interface->>Orchestrator: Submit feedback
-        Orchestrator->>CA: Forward feedback
-        CA->>CodeStore: Update implementation
-        CA->>Orchestrator: Submit updated implementation
-        Orchestrator->>Interface: Request follow-up review
+        User->>HI: Request code changes
+        HI->>OS: CodeChangesRequested event
+        OS->>CG: ProcessCodeFeedback command
+        CG->>CS: CommitChanges command
+        CG->>OS: ImplementationUpdated event
+        OS->>HI: RequestFollowUpReview command
+        HI->>User: Present updated code
     end
     
-    User->>Interface: Approve implementation
-    Interface->>Orchestrator: Submit approval
-    Orchestrator->>TaskStore: Update status (CodeApproved)
+    User->>HI: Approve implementation
+    HI->>OS: ImplementationApproved event
+    OS->>TS: UpdateTaskStatus command (CodeApproved)
     
-    Orchestrator->>CA: Generate tests
-    CA->>CodeStore: Create test files
-    CA->>Orchestrator: Submit test results
-    Orchestrator->>Interface: Present test results
-    User->>Interface: Approve for integration
-    Interface->>Orchestrator: Submit approval
-    Orchestrator->>TaskStore: Update status (ReadyForIntegration)
-```
-
-### LangChain Implementation
-
-1. **Coding Agent Implementation**
-   - Use LangChain's agent framework for the Coding Agent
-   - Create specialized prompts for different coding tasks
-   - Implement code generation tools with appropriate constraints
-   - Enable context management for large codebases
-
-2. **Enhanced Orchestrator Implementation**
-   - Add workflow rules for code generation
-   - Implement validation checkpoint logic
-   - Create feedback routing mechanisms
-   - Add support for multi-agent collaboration
-
-3. **Human Validation Logic**
-   - Implement checkpoint decision logic
-   - Create approval/rejection handling
-   - Enable feedback collection and routing
-   - Add support for partial approvals
-
-### API Enhancements
-
-#### Enhanced Task Storage API
-
-```python
-class TaskStorage:
-    # Phase 1 methods...
+    Note over User,CS: Test Generation Flow
     
-    def add_artifact(self, task_id: str, artifact_type: str, artifact_id: str) -> bool:
-        """Associate an artifact with a task"""
-        pass
-        
-    def get_task_artifacts(self, task_id: str, artifact_type: str = None) -> List[dict]:
-        """Get artifacts associated with a task"""
-        pass
-        
-    def add_approval(self, task_id: str, approval_type: str, approver: str, comments: str = None) -> bool:
-        """Add an approval record to a task"""
-        pass
-        
-    def get_task_approvals(self, task_id: str) -> List[dict]:
-        """Get approval records for a task"""
-        pass
-```
-
-#### Code Storage API
-
-```python
-class CodeStorage:
-    def create_repository(self, name: str, description: str) -> str:
-        """Create a new code repository and return repo_id"""
-        pass
-        
-    def commit_files(self, repo_id: str, files: Dict[str, str], message: str) -> str:
-        """Commit files to repository and return commit_id"""
-        pass
-        
-    def get_file(self, repo_id: str, file_path: str, ref: str = "main") -> str:
-        """Get file content from repository"""
-        pass
-        
-    def get_directory(self, repo_id: str, dir_path: str, ref: str = "main") -> List[dict]:
-        """Get directory listing from repository"""
-        pass
-        
-    def create_branch(self, repo_id: str, branch_name: str, from_ref: str = "main") -> bool:
-        """Create a new branch in repository"""
-        pass
-        
-    def merge_branch(self, repo_id: str, source_branch: str, target_branch: str = "main") -> bool:
-        """Merge branches in repository"""
-        pass
-```
-
-#### Enhanced Human Interface API
-
-```python
-class HumanInterface:
-    # Phase 1 methods...
+    OS->>CG: GenerateTests command
+    CG->>CS: CommitTestFiles command
+    CG->>OS: TestsGenerated event
+    OS->>HI: PresentTestResults command
+    HI->>User: Present test results
     
-    def request_approval(self, user_id: str, approval_type: str, data: dict) -> bool:
-        """Request approval from a user"""
-        pass
-        
-    def display_code_diff(self, user_id: str, old_version: str, new_version: str) -> bool:
-        """Display code differences to a user"""
-        pass
-        
-    def display_architecture(self, user_id: str, architecture_data: dict) -> bool:
-        """Display architecture diagram to a user"""
-        pass
-        
-    def register_approval_handler(self, handler: Callable[[str, str, bool, str], None]) -> None:
-        """Register a callback for approval responses"""
-        pass
+    User->>HI: Approve for integration
+    HI->>OS: IntegrationApproved event
+    OS->>TS: UpdateTaskStatus command (ReadyForIntegration)
 ```
+
+## Value Objects and Entities
+
+### Code Generation Context
+
+- **CodeFile**: Entity representing a source code file
+- **TestFile**: Entity representing a test file
+- **SourceCode**: Value object containing actual code
+- **CodeLanguage**: Value object representing programming language
+- **CodeMetrics**: Value object containing code quality metrics
+- **TestResult**: Value object representing test execution outcome
+- **ImplementationStrategy**: Value object defining implementation approach
+
+### Architecture Design
+
+- **Component**: Entity representing a software component
+- **Interface**: Entity representing a component interface
+- **Dependency**: Value object representing dependencies between components
+- **ArchitecturePattern**: Value object defining architectural pattern
+- **ComponentResponsibility**: Value object defining component responsibilities
+
+### Code Storage
+
+- **Repository**: Entity representing a code repository
+- **Branch**: Entity representing a code branch
+- **Commit**: Entity representing a code commit
+- **FilePath**: Value object representing file location
+- **CommitMessage**: Value object containing commit description
+- **VersionTag**: Value object representing a specific version
 
 ## Implementation Plan
 
-### Week 1-2: Enhanced Infrastructure
+### Week 1-2: Domain Model Extension
 
-- Enhance task storage with approval and artifact support
-- Implement code storage API with Git adapter
-- Update human interface API with approval and code review support
-- Enhance orchestrator to support validation checkpoints
-- Create tests for enhanced components
+- Extend domain model with new contexts
+- Define code generation aggregates and entities
+- Implement repository interfaces for code storage
+- Create validation checkpoint service
+- Extend event system for code generation events
 
-### Week 3-4: Coding Agent Implementation
+### Week 3-4: Code Generation Service
 
-- Implement Coding Agent using LangChain
+- Implement code generation context
 - Create architecture design capabilities
-- Implement code generation logic
-- Develop test generation capabilities
-- Create code review feedback handling
+- Implement code generation service
+- Develop test generation service
+- Create code review service
 
-### Week 5-6: Workflow Integration
+### Week 5-6: Workflow Enhancement
 
-- Connect components in the enhanced workflow
-- Implement code generation state management
-- Create human validation checkpoint flows
-- Add error handling and recovery logic
-- Set up end-to-end tests
+- Extend orchestration service for code workflow
+- Implement validation checkpoints
+- Create adapters for code storage
+- Implement feedback handling mechanisms
+- Set up code metrics and quality gates
 
-### Week 7-8: Refinement and Documentation
+### Week 7-8: Integration and Refinement
 
+- Integrate all contexts through event system
 - Optimize code generation capabilities
-- Improve validation checkpoint UX
-- Enhance error handling for code generation issues
+- Enhance human interfaces for code review
 - Create comprehensive documentation
-- Prepare for demo and user acceptance testing
+- Prepare for user acceptance testing
 
 ## Success Criteria
 
-- A user can review and approve a PRD
-- The system can generate architecture plans and implementation code
-- Code is stored in a version control system with proper organization
-- The user can review and provide feedback on generated code
-- The Coding Agent can adapt based on feedback
-- Tests are generated for implemented code
-- The entire workflow from requirements to code is tracked
+- Users can review and approve PRDs
+- The system generates architecture designs for review
+- Implementation code is generated based on approved designs
+- Code is stored with proper versioning and organization
+- Users can review code and provide feedback
+- The system responds to feedback with updated implementations
+- Tests are generated for all implementations
+- The workflow from requirements to code is fully tracked
 
 ## Next Steps
 
 After successful implementation of Phase 2, we will proceed to:
 
-1. Adding advanced AI capabilities in Phase 3
-2. Implementing deployment pipelines
-3. Adding analytics and monitoring
-4. Scaling the system for larger workloads 
+1. Advanced AI capabilities in Phase 3
+2. Deployment pipeline integration
+3. Analytics and monitoring implementation
+4. System scaling for larger workloads 
