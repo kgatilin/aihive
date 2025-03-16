@@ -16,15 +16,15 @@ graph TD
     PA[Product Agent]
     CA[Coding Agent]
     
-    HI --"1. Submit Requirements"--> TTS
-    TTS --"2. Notify New Task"--> OA
-    OA --"3. Assign Task"--> PA
-    PA --"4. Return Processed Requirements"--> OA
-    OA --"5. Update Task Status"--> TTS
-    HI --"6. Review & Validate"--> TTS
-    OA --"7. Assign Implementation"--> CA
-    CA --"8. Return Generated Code"--> OA
-    OA --"9. Request Human Review"--> HI
+    HI -->|1. Submit Requirements| TTS
+    TTS -->|2. Notify New Task| OA
+    OA -->|3. Assign Task| PA
+    PA -->|4. Return Processed Requirements| OA
+    OA -->|5. Update Task Status| TTS
+    HI -->|6. Review & Validate| TTS
+    OA -->|7. Assign Implementation| CA
+    CA -->|8. Return Generated Code| OA
+    OA -->|9. Request Human Review| HI
 ```
 
 ### Human Interface
@@ -164,6 +164,7 @@ sequenceDiagram
     participant User
     participant HI as Human Interface
     participant TTS as Task Tracking System
+    participant OA as Orchestrator Agent
     participant PA as Product Agent
     participant CA as Coding Agent
     participant Git as Git Repository
@@ -171,94 +172,119 @@ sequenceDiagram
     User->>HI: Submit requirements
     HI->>Git: Store PRD as markdown
     HI->>TTS: Create task with PRD link
-    TTS->>PA: Assign for PRD verification
+    TTS->>OA: Notify of new task
+    OA->>PA: Assign for PRD verification
     PA->>Git: Fetch PRD markdown
-    PA->>TTS: Update status (VerifyingPRD)
+    OA->>TTS: Update status (VerifyingPRD)
     
     alt PRD needs clarification
-        PA->>HI: Request clarification
+        PA->>OA: Report clarification needed
+        OA->>HI: Request clarification
         User->>HI: Provide feedback
-        HI->>TTS: Update status (PRDNeedsUpdate)
+        HI->>OA: Submit clarification
+        OA->>TTS: Update status (PRDNeedsUpdate)
+        OA->>PA: Forward clarification
         PA->>Git: Update PRD
-        PA->>TTS: Update status (VerifyingPRD)
+        OA->>TTS: Update status (VerifyingPRD)
     end
     
-    PA->>TTS: Update status (VerifyingAcceptanceCriteria)
+    PA->>OA: Submit structured requirements
+    OA->>TTS: Update status (VerifyingAcceptanceCriteria)
     
     alt Acceptance criteria need refinement
-        PA->>HI: Request feedback on criteria
+        OA->>HI: Request feedback on criteria
         User->>HI: Provide feedback
-        HI->>TTS: Update status (AcceptanceCriteriaNeedUpdate)
-        PA->>TTS: Update criteria
-        PA->>TTS: Update status (VerifyingAcceptanceCriteria)
+        HI->>OA: Submit feedback
+        OA->>TTS: Update status (AcceptanceCriteriaNeedUpdate)
+        OA->>PA: Request criteria updates
+        PA->>OA: Submit updated criteria
+        OA->>TTS: Update status (VerifyingAcceptanceCriteria)
     end
     
-    PA->>TTS: Submit structured requirements
-    TTS->>HI: Request validation
+    OA->>HI: Request requirements validation
     User->>HI: Approve requirements
-    HI->>TTS: Update status (VerifyingArchitecture)
+    HI->>OA: Confirm approval
+    OA->>TTS: Update status (VerifyingArchitecture)
     
-    TTS->>CA: Assign for architecture proposal
-    CA->>TTS: Submit architecture plan
-    TTS->>HI: Request architecture validation
+    OA->>CA: Assign for architecture proposal
+    CA->>OA: Submit architecture plan
+    OA->>HI: Request architecture validation
     
     alt Architecture needs revision
         User->>HI: Provide architecture feedback
-        HI->>TTS: Update status (ArchitectureNeedsRevision)
-        CA->>TTS: Update architecture
-        CA->>TTS: Update status (VerifyingArchitecture)
+        HI->>OA: Submit feedback
+        OA->>TTS: Update status (ArchitectureNeedsRevision)
+        OA->>CA: Request architecture update
+        CA->>OA: Submit updated architecture
+        OA->>TTS: Update status (VerifyingArchitecture)
     end
     
     User->>HI: Approve architecture
-    HI->>TTS: Update status (VerifyingExecutionPlan)
+    HI->>OA: Confirm approval
+    OA->>TTS: Update status (VerifyingExecutionPlan)
     
-    CA->>TTS: Submit execution plan
-    TTS->>HI: Request plan validation
+    OA->>CA: Request execution plan
+    CA->>OA: Submit execution plan
+    OA->>HI: Request plan validation
     
     alt Execution plan needs revision
         User->>HI: Provide execution plan feedback
-        HI->>TTS: Update status (ExecutionPlanNeedsRevision)
-        CA->>TTS: Update execution plan
-        CA->>TTS: Update status (VerifyingExecutionPlan)
+        HI->>OA: Submit feedback
+        OA->>TTS: Update status (ExecutionPlanNeedsRevision)
+        OA->>CA: Request plan update
+        CA->>OA: Submit updated plan
+        OA->>TTS: Update status (VerifyingExecutionPlan)
     end
     
     User->>HI: Approve execution plan
-    HI->>TTS: Update status (QueuedForDevelopment)
+    HI->>OA: Confirm approval
+    OA->>TTS: Update status (QueuedForDevelopment)
     
-    TTS->>CA: Assign for development
-    CA->>TTS: Update status (InDevelopment)
+    OA->>CA: Assign for development
+    OA->>TTS: Update status (InDevelopment)
     
     alt Implementation issues
-        CA->>TTS: Update status (ImplementationNeedsFixes)
+        CA->>OA: Report implementation issues
+        OA->>TTS: Update status (ImplementationNeedsFixes)
         CA->>Git: Fix code
-        CA->>TTS: Update status (InDevelopment)
+        CA->>OA: Report fixes complete
+        OA->>TTS: Update status (InDevelopment)
     end
     
     CA->>Git: Commit code
-    CA->>TTS: Update status (CodeReview)
-    TTS->>HI: Request code review
+    CA->>OA: Report code completion
+    OA->>TTS: Update status (CodeReview)
+    OA->>HI: Request code review
     
     alt Code changes requested
         User->>HI: Request code changes
-        HI->>TTS: Update status (ImplementationNeedsFixes)
+        HI->>OA: Submit change requests
+        OA->>TTS: Update status (ImplementationNeedsFixes)
+        OA->>CA: Request code updates
         CA->>Git: Update code
-        CA->>TTS: Update status (CodeReview)
+        CA->>OA: Report updates complete
+        OA->>TTS: Update status (CodeReview)
     end
     
     User->>HI: Approve code
-    HI->>TTS: Update status (Testing)
+    HI->>OA: Confirm approval
+    OA->>TTS: Update status (Testing)
     
-    CA->>TTS: Submit test results
+    OA->>CA: Request testing
+    CA->>OA: Submit test results
     
     alt Tests failed
-        CA->>TTS: Update status (TestsNeedUpdates)
+        OA->>TTS: Update status (TestsNeedUpdates)
+        OA->>CA: Request fixes
         CA->>Git: Fix issues
-        CA->>TTS: Update status (Testing)
+        CA->>OA: Report fixes complete
+        OA->>TTS: Update status (Testing)
     end
     
-    TTS->>HI: Present test results
+    OA->>HI: Present test results
     User->>HI: Approve for deployment
-    HI->>TTS: Update status (ReadyForDeployment)
+    HI->>OA: Confirm approval
+    OA->>TTS: Update status (ReadyForDeployment)
 ```
 
 ## Integration Points
