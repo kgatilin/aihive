@@ -6,12 +6,13 @@ This document details the high-level architecture for an AI-driven software deve
 
 ## Core Components
 
-The architecture consists of four primary components, which are detailed in the [Component Architecture](component_architecture.md) document:
+The architecture consists of five primary components, which are detailed in the [Component Architecture](component_architecture.md) document:
 
 1. **Human Interface**: Entry point for requirements and validation
 2. **Task Tracking System**: Manages workflow status and progression
-3. **Product Agent**: Processes requirements and generates specifications
-4. **Coding Agent**: Generates code based on specifications
+3. **Orchestrator Agent**: Coordinates workflow and assigns tasks to specialized agents
+4. **Product Agent**: Processes requirements and generates specifications
+5. **Coding Agent**: Generates code based on specifications
 
 ## System Workflows
 
@@ -22,23 +23,34 @@ sequenceDiagram
     participant User
     participant HI as Human Interface
     participant TTS as Task Tracking System
+    participant OA as Orchestrator Agent
     participant PA as Product Agent
     participant Git as Git Repository
     
     User->>HI: Submit requirements
     HI->>Git: Store PRD as markdown
     HI->>TTS: Create task with PRD link
-    TTS->>PA: Assign for processing
+    TTS->>OA: Notify of new task
+    OA->>TTS: Update status (VerifyingPRD)
+    OA->>PA: Assign for processing
     PA->>Git: Fetch PRD markdown
-    PA->>TTS: Update status (VerifyingPRD)
+    PA->>PA: Analyze & structure
+    
     alt PRD needs clarification
-        PA->>HI: Request clarification
+        PA->>OA: Report clarification needed
+        OA->>HI: Request clarification
         User->>HI: Provide feedback
+        HI->>OA: Submit clarification
+        OA->>PA: Forward clarification
         PA->>Git: Update PRD
     end
-    PA->>TTS: Submit structured requirements
-    TTS->>HI: Request validation
+    
+    PA->>OA: Submit structured requirements
+    OA->>TTS: Update status (VerifyingAcceptanceCriteria)
+    OA->>HI: Request validation
     User->>HI: Approve requirements
+    HI->>OA: Confirm approval
+    OA->>TTS: Update status (VerifyingArchitecture)
 ```
 
 ### 2. Code Generation Workflow
@@ -48,24 +60,47 @@ sequenceDiagram
     participant User
     participant HI as Human Interface
     participant TTS as Task Tracking System
+    participant OA as Orchestrator Agent
     participant CA as Coding Agent
     participant Git as Git Repository
+    participant Tests as Testing Framework
     
-    TTS->>CA: Assign for development
-    CA->>TTS: Submit architecture plan
-    TTS->>HI: Request validation
+    OA->>CA: Assign for architecture creation
+    CA->>CA: Generate architecture plan
+    CA->>OA: Submit architecture plan
+    OA->>TTS: Update status (VerifyingArchitecture)
+    OA->>HI: Request architecture validation
+    User->>HI: Approve architecture
+    HI->>OA: Confirm approval
+    
+    OA->>CA: Assign for execution plan
+    CA->>CA: Generate execution plan
+    CA->>OA: Submit execution plan
+    OA->>TTS: Update status (VerifyingExecutionPlan)
+    OA->>HI: Request plan validation
     User->>HI: Approve plan
-    CA->>TTS: Submit execution plan
-    TTS->>HI: Request validation
-    User->>HI: Approve plan
-    CA->>TTS: Update status (InDevelopment)
+    HI->>OA: Confirm approval
+    
+    OA->>TTS: Update status (QueuedForDevelopment)
+    OA->>CA: Assign for development
+    OA->>TTS: Update status (InDevelopment)
+    CA->>CA: Generate code
     CA->>Git: Commit code
-    CA->>TTS: Update status (CodeReview)
-    TTS->>HI: Request code review
+    CA->>OA: Report code completion
+    
+    OA->>TTS: Update status (CodeReview)
+    OA->>HI: Request code review
     User->>HI: Approve code
-    CA->>TTS: Run tests
-    TTS->>HI: Present test results
+    HI->>OA: Confirm approval
+    
+    OA->>CA: Request tests
+    CA->>Tests: Create & run tests
+    Tests->>OA: Report test results
+    OA->>TTS: Update status (Testing)
+    OA->>HI: Present test results
     User->>HI: Approve for deployment
+    HI->>OA: Confirm approval
+    OA->>TTS: Update status (ReadyForDeployment)
 ```
 
 ## Architectural Decisions
@@ -86,13 +121,13 @@ sequenceDiagram
   - Facilitates human readability and editing
   - Integrates with existing development workflows
 
-### AD-3: Task Status-Driven Orchestration
-- **Decision**: Drive workflow progression through explicit task statuses
+### AD-3: Orchestrator-Driven Workflow
+- **Decision**: Use a dedicated Orchestrator Agent to manage workflow progression
 - **Rationale**:
-  - Creates clear visibility of work in progress
-  - Enables precise targeting of human validation points
-  - Provides consistent process across different task types
-  - Facilitates automation based on well-defined transitions
+  - Centralizes workflow coordination logic
+  - Allows specialized agents to focus on their specific tasks
+  - Provides a single point of control for workflow state
+  - Ensures consistency in task transitions and status updates
 
 ### AD-4: Human Validation Checkpoints
 - **Decision**: Implement mandatory human validation at key decision points
@@ -123,7 +158,7 @@ sequenceDiagram
 
 ### Agent Scaling
 - Stateless AI agent design allows horizontal scaling
-- Independent scaling of Product and Coding agents
+- Independent scaling of Orchestrator, Product, and Coding agents
 - Containerized deployment enables dynamic resource allocation
 
 ### Task Distribution

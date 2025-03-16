@@ -6,6 +6,27 @@ This document outlines the key components of the AI-driven development pipeline,
 
 ## Core Components
 
+The AI-driven development pipeline consists of the following core components:
+
+```mermaid
+graph TD
+    HI[Human Interface]
+    TTS[Task Tracking System]
+    OA[Orchestrator Agent]
+    PA[Product Agent]
+    CA[Coding Agent]
+    
+    HI --1. Submit Requirements--> TTS
+    TTS --2. Notify New Task--> OA
+    OA --3. Assign Task--> PA
+    PA --4. Return Processed Requirements--> OA
+    OA --5. Update Task Status--> TTS
+    HI --6. Review & Validate--> TTS
+    OA --7. Assign Implementation--> CA
+    CA --8. Return Generated Code--> OA
+    OA --9. Request Human Review--> HI
+```
+
 ### Human Interface
 
 - **Purpose**: Provides interaction points for humans to input requirements and validate outputs
@@ -46,6 +67,23 @@ This document outlines the key components of the AI-driven development pipeline,
   - Assignment functionality
   - Commenting and feedback collection
   - Integration with notification systems
+
+### Orchestrator Agent
+
+The Orchestrator Agent manages workflow progression and task assignments between the specialized AI agents.
+
+**Key Responsibilities:**
+- Monitor the Task Tracking System for new or updated tasks
+- Determine next steps in the workflow based on task state
+- Assign tasks to appropriate specialized agents (Product Agent, Coding Agent)
+- Update task status based on agent responses
+- Coordinate human validation requests at checkpoints
+
+**Implementation Considerations:**
+- Event-driven design to react to task status changes
+- Decision engine for workflow routing
+- Retry and error handling logic
+- Monitoring for agent performance and availability
 
 ### Product Agent
 

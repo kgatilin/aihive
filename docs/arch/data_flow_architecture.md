@@ -2,7 +2,13 @@
 
 ## Overview
 
-This document describes the flow of data through the AI-driven development pipeline, detailing how information moves between components and is transformed at each step. Understanding these data flows is crucial for ensuring data consistency and implementing effective interfaces.
+This document describes the flow of data through the AI-driven development pipeline, focusing on the key data entities and their transformations.
+
+The system processes three core data types that flow between components:
+
+1. **Requirements Data** - Product requirements and specifications
+2. **Code Data** - Generated code and associated artifacts
+3. **Task Status Data** - Workflow state and progression information
 
 ## Core Data Entities
 
@@ -22,11 +28,10 @@ Requirements data represents the product specifications that drive the developme
 
 ```mermaid
 graph TD
-    A[Raw Requirements] -->|Human Interface| B[Git Repository]
+    A[Natural Language Requirements] -->|Human Interface| B[Git-Stored PRD]
     B -->|Product Agent| C[Structured Requirements]
-    C -->|Human Validation| D[Approved Requirements]
-    D -->|Task Tracking System| E[Development Tasks]
-    E -->|Coding Agent| F[Implementation]
+    C -->|Orchestrator Agent| D[Validated Requirements]
+    D -->|Coding Agent| E[Implementation Plan]
 ```
 
 ### Code Data
@@ -45,12 +50,10 @@ Code data represents the implementation artifacts generated throughout the devel
 
 ```mermaid
 graph TD
-    A[Approved Requirements] -->|Coding Agent| B[Architecture Plan]
-    B -->|Human Validation| C[Execution Plan]
-    C -->|Human Validation| D[Code Generation]
-    D -->|Git Repository| E[Code Review]
-    E -->|Human Validation| F[Testing]
-    F -->|Automated Tests| G[Approved Code]
+    A[Validated Requirements] -->|Coding Agent| B[Component Design]
+    B -->|Coding Agent| C[Code Implementation]
+    C -->|Coding Agent| D[Test Implementation]
+    D -->|Orchestrator Agent| E[Validated Code]
 ```
 
 ### Task Status Data
@@ -67,94 +70,60 @@ Task status data represents the state and progress of development activities in 
 
 ```mermaid
 graph TD
-    A[New Task] -->|Initial Status| B[Verifying PRD]
-    B -->|Product Agent| C[Verifying Acceptance Criteria]
-    C -->|Product Agent| D[Verifying Architecture]
-    D -->|Coding Agent| E[Verifying Execution Plan]
-    E -->|Coding Agent| F[In Development]
-    F -->|Coding Agent| G[Code Review]
-    G -->|Human Validation| H[Testing]
-    H -->|Automated Tests| I[Ready for Deployment]
+    A[Task Creation] -->|Human Interface| B[Task Tracking System]
+    B -->|Orchestrator Agent| C[Status Updates]
+    C -->|Task Tracking System| D[Task Completion]
+    D -->|Human Interface| E[User Notification]
 ```
 
 ## System-Wide Data Flows
 
-### Requirements Processing Flow
+The following diagram shows how data flows between all components:
 
 ```mermaid
-sequenceDiagram
-    participant User
-    participant HI as Human Interface
-    participant Git as Git Repository
-    participant TTS as Task Tracking System
-    participant PA as Product Agent
-
-    User->>HI: Submit requirements
-    HI->>Git: Store as markdown
-    HI->>TTS: Create task
-    TTS->>PA: Assign for processing
-    PA->>Git: Fetch requirements
-    PA->>PA: Analyze & structure
-    PA->>TTS: Update task status
-    PA->>HI: Request clarification (if needed)
-    User->>HI: Provide clarification
-    PA->>TTS: Update structured requirements
-    TTS->>HI: Request validation
-    User->>HI: Approve requirements
-```
-
-### Code Generation Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant HI as Human Interface
-    participant TTS as Task Tracking System
-    participant CA as Coding Agent
-    participant Git as Git Repository
-    participant Tests as Testing Framework
-
-    TTS->>CA: Assign development task
-    CA->>TTS: Fetch requirements
-    CA->>CA: Generate architecture plan
-    CA->>TTS: Submit plan
-    TTS->>HI: Request validation
-    User->>HI: Approve plan
-    CA->>CA: Generate code
-    CA->>Git: Commit code
-    CA->>Tests: Create & run tests
-    Tests->>TTS: Report test results
-    TTS->>HI: Request code review
-    User->>HI: Approve code
+graph TD
+    HI[Human Interface]
+    TTS[Task Tracking System]
+    OA[Orchestrator Agent]
+    PA[Product Agent]
+    CA[Coding Agent]
+    Git[Git Repository]
+    
+    HI -->|Requirements| Git
+    HI -->|Task Creation| TTS
+    TTS -->|Task Events| OA
+    OA -->|Processing Request| PA
+    PA -->|PRD Access| Git
+    PA -->|Structured Requirements| OA
+    OA -->|Status Updates| TTS
+    OA -->|Implementation Request| CA
+    CA -->|Code Storage| Git
+    CA -->|Code Updates| OA
+    OA -->|Validation Requests| HI
+    HI -->|User Decisions| OA
 ```
 
 ## Integration Patterns
 
-### Git Integration
+1. **Event-Driven Updates**
+   - Components publish events when state changes
+   - Subscribers react to relevant events
+   - Reduces tight coupling between components
 
-The system uses Git repositories for storing multiple types of data:
+2. **Git-Based Storage**
+   - Both requirements and code stored in Git
+   - Provides version history and audit trail
+   - Facilitates human review and editing
 
-- **Requirements**: Stored as markdown files for version control and traceability
-- **Code**: Generated implementation stored with proper commit history
-- **Tests**: Test cases and results linked to their corresponding code
+3. **API-Based Communication**
+   - RESTful APIs for synchronous operations
+   - WebSocket connections for real-time updates
+   - Standard authentication and authorization
 
-### Event-Driven Communication
-
-Status changes in the Task Tracking System trigger events that coordinate activities:
-
-- **Task Created**: Triggers initial processing by Product Agent
-- **Status Updated**: Notifies relevant components of new work to be done
-- **Validation Required**: Alerts human users of pending review tasks
-- **Tests Completed**: Triggers next actions based on pass/fail
-
-### API-Based Integration
-
-Components communicate through well-defined APIs:
-
-- **Human Interface → Task Tracking**: Task creation and updates
-- **Task Tracking → Agents**: Task assignments and status updates
-- **Agents → Git**: Fetching and committing files
-- **Testing Framework → Task Tracking**: Test results reporting
+4. **Message-Based Coordination**
+   - Orchestrator Agent coordinates via messages
+   - Ensures reliable delivery of requests
+   - Supports retry mechanisms for resilience
 
 ## Storage Systems
 
