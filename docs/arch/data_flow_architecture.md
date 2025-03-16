@@ -2,32 +2,31 @@
 
 ## Overview
 
-This document describes the flow of data through the AI-driven development pipeline, detailing how information moves between components and is transformed at each step. Understanding these data flows is crucial for ensuring data consistency, implementing effective interfaces, and identifying potential bottlenecks or optimization opportunities.
+This document describes the flow of data through the AI-driven development pipeline, detailing how information moves between components and is transformed at each step. Understanding these data flows is crucial for ensuring data consistency and implementing effective interfaces.
 
 ## Core Data Entities
 
 ### Requirements Data
 
-Requirements data represents the product specifications that drive the development process. It evolves from unstructured to structured formats throughout the pipeline.
+Requirements data represents the product specifications that drive the development process.
 
 #### Lifecycle:
 
-1. **Creation**: Product managers submit unstructured requirements
-2. **Transformation**: Requirements Agent converts to structured format
-3. **Verification**: Human validation ensures accuracy and completeness
-4. **Storage**: Stored in version-controlled repositories
-5. **Consumption**: Used by AI Software Engineer to generate code
-6. **Traceability**: Linked to generated code for auditability
-
-#### Schema Evolution:
+1. **Creation**: Human users submit requirements through the Human Interface
+2. **Storage**: Requirements are stored as markdown files in Git
+3. **Processing**: Product Agent analyzes and structures the requirements
+4. **Validation**: Human users verify the structured requirements
+5. **Tracking**: Task Tracking System monitors status and progress
+6. **Consumption**: Coding Agent uses requirements to generate code
+7. **Traceability**: Links maintained between requirements and implementation
 
 ```mermaid
 graph TD
-    A[Unstructured Requirements] -->|NLP Processing| B[Semi-structured Draft]
-    B -->|Human Verification| C[Structured Requirements]
-    C -->|Decomposition| D[Task Assignments]
-    D -->|Execution| E[Implementation]
-    E -->|Validation| F[Verified Implementation]
+    A[Raw Requirements] -->|Human Interface| B[Git Repository]
+    B -->|Product Agent| C[Structured Requirements]
+    C -->|Human Validation| D[Approved Requirements]
+    D -->|Task Tracking System| E[Development Tasks]
+    E -->|Coding Agent| F[Implementation]
 ```
 
 ### Code Data
@@ -36,45 +35,46 @@ Code data represents the implementation artifacts generated throughout the devel
 
 #### Lifecycle:
 
-1. **Planning**: Task breakdown and execution planning
-2. **Generation**: AI Software Engineer generates code
-3. **Testing**: Automated tests validate functionality
-4. **Review**: Human validation ensures quality and security
-5. **Deployment**: Code is deployed to production environments
-6. **Monitoring**: Performance and issues are tracked
-
-#### Schema Evolution:
+1. **Planning**: Coding Agent creates architecture and execution plans
+2. **Validation**: Human users approve plans via the Human Interface
+3. **Generation**: Coding Agent produces code and tests
+4. **Review**: Human users validate the generated code
+5. **Testing**: Automated tests verify functionality
+6. **Storage**: Code is stored in Git repositories
+7. **Deployment**: Approved code is deployed to production
 
 ```mermaid
 graph TD
-    A[Execution Plan] -->|Code Generation| B[Initial Code Draft]
-    B -->|Self-Review| C[Refined Code]
-    C -->|Automated Testing| D[Tested Code]
-    D -->|Human Review| E[Validated Code]
-    E -->|Deployment| F[Deployed Code]
-    F -->|Monitoring| G[Performance Data]
+    A[Approved Requirements] -->|Coding Agent| B[Architecture Plan]
+    B -->|Human Validation| C[Execution Plan]
+    C -->|Human Validation| D[Code Generation]
+    D -->|Git Repository| E[Code Review]
+    E -->|Human Validation| F[Testing]
+    F -->|Automated Tests| G[Approved Code]
 ```
 
-### Workflow Data
+### Task Status Data
 
-Workflow data represents the state and progress of development activities.
+Task status data represents the state and progress of development activities in the Task Tracking System.
 
 #### Lifecycle:
 
-1. **Initiation**: Workflow created when requirements approved
-2. **Tracking**: State updates as development progresses
-3. **Logging**: Activities and decisions recorded
-4. **Analysis**: Metrics calculated for performance tracking
-5. **Completion**: Workflow closed when deployment complete
-
-#### Schema Evolution:
+1. **Creation**: New tasks created for each requirement
+2. **Status Updates**: Status changes as work progresses through stages
+3. **Assignment**: Tasks assigned to appropriate AI agents
+4. **Validation Requests**: Human validation requested at key checkpoints
+5. **Completion**: Tasks marked complete when all stages finished
 
 ```mermaid
 graph TD
-    A[Workflow Creation] -->|Stage Transitions| B[Active Workflow]
-    B -->|Status Updates| C[Progressive States]
-    C -->|Completion| D[Closed Workflow]
-    D -->|Analysis| E[Performance Metrics]
+    A[New Task] -->|Initial Status| B[Verifying PRD]
+    B -->|Product Agent| C[Verifying Acceptance Criteria]
+    C -->|Product Agent| D[Verifying Architecture]
+    D -->|Coding Agent| E[Verifying Execution Plan]
+    E -->|Coding Agent| F[In Development]
+    F -->|Coding Agent| G[Code Review]
+    G -->|Human Validation| H[Testing]
+    H -->|Automated Tests| I[Ready for Deployment]
 ```
 
 ## System-Wide Data Flows
@@ -83,561 +83,107 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant PM as Product Manager
-    participant RA as Requirements Agent
-    participant DB as Requirements Repository
-    participant O as Orchestrator
-    participant SE as Software Engineer Agent
+    participant User
+    participant HI as Human Interface
+    participant Git as Git Repository
+    participant TTS as Task Tracking System
+    participant PA as Product Agent
 
-    PM->>RA: Submit unstructured requirements
-    RA->>RA: Process requirements
-    RA->>PM: Request clarification
-    PM->>RA: Provide additional details
-    RA->>RA: Generate structured requirements
-    RA->>PM: Present for validation
-    PM->>RA: Approve requirements
-    RA->>DB: Store approved requirements
-    note over DB: JSON documents with metadata
-    DB->>O: Trigger workflow creation
-    O->>SE: Assign development tasks
-    note over SE: Task assignments with requirement references
+    User->>HI: Submit requirements
+    HI->>Git: Store as markdown
+    HI->>TTS: Create task
+    TTS->>PA: Assign for processing
+    PA->>Git: Fetch requirements
+    PA->>PA: Analyze & structure
+    PA->>TTS: Update task status
+    PA->>HI: Request clarification (if needed)
+    User->>HI: Provide clarification
+    PA->>TTS: Update structured requirements
+    TTS->>HI: Request validation
+    User->>HI: Approve requirements
 ```
-
-Key data exchanges:
-- **PM → RA**: Unstructured text, documents, mockups
-- **RA → PM**: Clarification requests, structured previews
-- **RA → DB**: Structured requirements JSON documents
-- **DB → O**: Event notifications with requirement IDs
-- **O → SE**: Task assignments with requirement details
 
 ### Code Generation Flow
 
 ```mermaid
 sequenceDiagram
-    participant O as Orchestrator
-    participant SE as Software Engineer Agent
-    participant SA as System Architect
-    participant VCS as Version Control
-    participant TS as Testing Suite
-    participant QA as QA Engineer
+    participant User
+    participant HI as Human Interface
+    participant TTS as Task Tracking System
+    participant CA as Coding Agent
+    participant Git as Git Repository
+    participant Tests as Testing Framework
 
-    O->>SE: Assign task
-    SE->>SE: Analyze requirements
-    SE->>SE: Generate execution plan
-    SE->>O: Submit execution plan
-    O->>SA: Forward for review
-    SA->>O: Approve plan (possibly with modifications)
-    O->>SE: Authorize code generation
-    SE->>SE: Generate code
-    SE->>SE: Self-review
-    SE->>VCS: Submit code
-    VCS->>TS: Trigger testing
-    TS->>O: Report test results
-    O->>QA: Request validation
-    QA->>O: Approve code
-    O->>VCS: Tag release
+    TTS->>CA: Assign development task
+    CA->>TTS: Fetch requirements
+    CA->>CA: Generate architecture plan
+    CA->>TTS: Submit plan
+    TTS->>HI: Request validation
+    User->>HI: Approve plan
+    CA->>CA: Generate code
+    CA->>Git: Commit code
+    CA->>Tests: Create & run tests
+    Tests->>TTS: Report test results
+    TTS->>HI: Request code review
+    User->>HI: Approve code
 ```
 
-Key data exchanges:
-- **O → SE**: Task assignment with requirements and constraints
-- **SE → O**: Execution plan with component breakdown
-- **O → SA**: Execution plan with architectural implications
-- **SE → VCS**: Code files with metadata and commit messages
-- **TS → O**: Test results with coverage and failure reports
-- **O → QA**: Validation request with test reports and code diff
-- **QA → O**: Approval decision with optional comments
+## Integration Patterns
 
-### Deployment and Monitoring Flow
+### Git Integration
 
-```mermaid
-sequenceDiagram
-    participant O as Orchestrator
-    participant VCS as Version Control
-    participant DP as Deployment Pipeline
-    participant PM as Production Monitoring
-    participant EM as Engineering Manager
-    participant DB as Analytics Database
+The system uses Git repositories for storing multiple types of data:
 
-    O->>VCS: Request approved code
-    VCS->>DP: Trigger deployment pipeline
-    DP->>DP: Build artifacts
-    DP->>DP: Run pre-deployment tests
-    DP->>DP: Deploy to staging
-    DP->>DP: Run acceptance tests
-    DP->>DP: Deploy to production
-    DP->>O: Report deployment status
-    DP->>PM: Enable monitoring
-    PM->>PM: Collect performance metrics
-    PM->>DB: Store metrics
-    PM->>EM: Alert on anomalies
-    EM->>O: Request adjustments (if needed)
-    DB->>O: Provide feedback for improvement
-```
+- **Requirements**: Stored as markdown files for version control and traceability
+- **Code**: Generated implementation stored with proper commit history
+- **Tests**: Test cases and results linked to their corresponding code
 
-Key data exchanges:
-- **O → VCS**: Deployment request with version tag
-- **VCS → DP**: Source code and deployment configuration
-- **DP → O**: Deployment status and results
-- **PM → DB**: Performance metrics and logs
-- **PM → EM**: Alert notifications with diagnostics
-- **EM → O**: Adjustment requests with specific issues
-- **DB → O**: Performance analytics for learning
+### Event-Driven Communication
 
-## Component-Specific Data Flows
+Status changes in the Task Tracking System trigger events that coordinate activities:
 
-### Product Requirements Agent
+- **Task Created**: Triggers initial processing by Product Agent
+- **Status Updated**: Notifies relevant components of new work to be done
+- **Validation Required**: Alerts human users of pending review tasks
+- **Tests Completed**: Triggers next actions based on pass/fail
 
-```mermaid
-graph TD
-    A[Unstructured Input] -->|Parser| B[Requirement Entities]
-    B -->|Validator| C[Missing Field Detection]
-    C -->|Clarification Engine| D[Clarification Requests]
-    D -->|Response Processor| E[Updated Entities]
-    E -->|Formatter| F[Structured Requirements]
-    F -->|Storage| G[Version Control]
-```
+### API-Based Integration
 
-#### Data Transformations:
+Components communicate through well-defined APIs:
 
-1. **Text → Entities**: Extraction of actionable items from text
-2. **Entities → Validation Results**: Identification of missing information
-3. **Validation Results → Clarification Requests**: Generation of specific questions
-4. **Responses → Entity Updates**: Integration of additional information
-5. **Entities → Structured Documents**: Formatting into standardized schemas
+- **Human Interface → Task Tracking**: Task creation and updates
+- **Task Tracking → Agents**: Task assignments and status updates
+- **Agents → Git**: Fetching and committing files
+- **Testing Framework → Task Tracking**: Test results reporting
 
-### AI Software Engineer Agent
+## Storage Systems
 
-```mermaid
-graph TD
-    A[Task Assignment] -->|Task Analyzer| B[Component Breakdown]
-    B -->|Dependency Mapper| C[Implementation Plan]
-    C -->|Code Generator| D[Code Draft]
-    D -->|Static Analysis| E[Quality Issues]
-    E -->|Self-Review| F[Revised Code]
-    F -->|Test Generator| G[Unit Tests]
-    G -->|Test Executor| H[Test Results]
-    H -->|Final Reviewer| I[Final Code]
-```
+### Git Repository
 
-#### Data Transformations:
+- Primary storage for all textual artifacts
+- Version control for requirements, code, and tests
+- Branching strategy for parallel development
+- Pull request workflow for code reviews
 
-1. **Task → Components**: Breakdown of requirements into implementable units
-2. **Components → Dependencies**: Mapping relationships between components
-3. **Plan → Code**: Generation of source code from plan
-4. **Code → Issues**: Identification of quality or security issues
-5. **Issues → Revisions**: Application of fixes to code
-6. **Code → Tests**: Generation of test cases
-7. **Tests → Results**: Execution of tests and collection of results
-8. **Results → Final Code**: Integration of test-driven improvements
+### Task Tracking Database
 
-### Orchestrator Agent
+- Central repository for task status and metadata
+- Relationships between requirements, tasks, and code
+- History of status transitions and validation decisions
+- Assignment and ownership tracking
 
-```mermaid
-graph TD
-    A[Event Triggers] -->|Event Processor| B[State Updates]
-    B -->|Workflow Manager| C[Stage Transitions]
-    C -->|Task Scheduler| D[Agent Assignments]
-    D -->|Consistency Checker| E[Validation Results]
-    E -->|Issue Detector| F[Problem Reports]
-    F -->|Escalation Engine| G[Human Notifications]
-    G -->|Resolution Processor| H[Resolution Actions]
-```
+## Security Considerations
 
-#### Data Transformations:
-
-1. **Events → State Updates**: Conversion of events to workflow state changes
-2. **State → Stage Transitions**: Determination of workflow progression
-3. **Stage → Tasks**: Generation of appropriate tasks for agents
-4. **Components → Validation**: Cross-checking of components for consistency
-5. **Validation → Issues**: Identification of problems or conflicts
-6. **Issues → Notifications**: Creation of human-readable alerts
-7. **Resolutions → Actions**: Implementation of corrective measures
-
-## Data Storage Patterns
-
-### Relational Database (PostgreSQL)
-
-**Primary uses**:
-- User and permission management
-- Workflow state tracking
-- Relationship mapping between entities
-- Structured metadata
-
-**Key tables**:
-- Users and Roles
-- Workflows and States
-- Projects and Teams
-- Audit Logs
-
-### Document Database (MongoDB)
-
-**Primary uses**:
-- Storing structured requirements
-- Execution plans and architectural documents
-- Test results and reports
-- Code analysis results
-
-**Key collections**:
-- Requirements
-- ExecutionPlans
-- TestReports
-- AnalysisResults
-
-### Key-Value Store (Redis)
-
-**Primary uses**:
-- Caching frequently accessed data
-- Session management
-- Rate limiting
-- Real-time dashboards
-
-**Key structures**:
-- Cached Requirements
-- User Sessions
-- Agent States
-- Dashboard Metrics
-
-### Event Store (Kafka)
-
-**Primary uses**:
-- Workflow event sourcing
-- Activity logs
-- Cross-component communication
-- Metrics collection
-
-**Key topics**:
-- RequirementEvents
-- WorkflowEvents
-- CodeGenerationEvents
-- DeploymentEvents
-
-## Persistent Storage vs. Ephemeral Data
-
-### Persistent Data
-
-**Requirements for persistence**:
-- Critical business requirements
-- Generated code and artifacts
-- Test results and reports
-- Deployment configurations
-- Performance metrics and logs
-
-**Storage mechanisms**:
-- Git repositories for code and requirements
-- Databases for structured data
-- Object storage for artifacts and large files
-
-### Ephemeral Data
-
-**Types of ephemeral data**:
-- Agent working memory
-- Intermediate processing results
-- Temporary files during code generation
-- Debug information
-
-**Storage mechanisms**:
-- In-memory data structures
-- Temporary files in agent containers
-- Short-lived cache entries
-
-## Cross-Cutting Concerns
-
-### Security Considerations
-
-**Data encryption**:
-- Encryption at rest for all databases
-- TLS for all service communications
-- Secure storage of credentials and secrets
-
-**Access control**:
-- Role-based access control for all data
-- Fine-grained permissions for sensitive operations
-- Audit logging for all data modifications
-
-### Data Validation
-
-**Input validation**:
-- Schema validation for all API requests
-- Content validation for requirements
-- Static analysis for generated code
-
-**Output validation**:
-- Test coverage for generated code
-- Compliance checks for security and quality
-- Human validation checkpoints for critical decisions
-
-### Data Retention
-
-**Retention policies**:
-- Requirements: Indefinite retention with versioning
-- Code: Indefinite retention with versioning
-- Logs: Rolling retention based on importance
-- Metrics: Aggregation and summarization over time
+- **Authentication**: All system interactions require proper authentication
+- **Authorization**: Role-based access controls for different functions
+- **Encryption**: Sensitive data encrypted at rest and in transit
+- **Audit Logging**: All data transformations and status changes logged
+- **Validation**: Data integrity checks at key transformation points
 
 ## Implementation Guidelines
 
-### API Design Principles
-
-1. **RESTful resource modeling**: Design APIs around business entities
-2. **GraphQL for complex queries**: Use GraphQL for front-end data requirements
-3. **Event-driven for async operations**: Use events for long-running processes
-4. **Consistent error handling**: Standardized error responses across all APIs
-
-### Data Serialization Formats
-
-1. **JSON for API communication**: Standard for human-readable data exchange
-2. **Protocol Buffers for high-performance needs**: Efficient binary serialization
-3. **YAML for configuration**: Human-editable configuration files
-4. **Markdown for documentation**: Version-controllable documentation format
-
-### Schema Evolution
-
-1. **Forward compatibility**: Design schemas to handle future fields
-2. **Versioning strategy**: Explicit versioning of all APIs and schemas
-3. **Migration patterns**: Automated migration of data between schemas
-4. **Backward compatibility guarantees**: Ensure old clients work with new systems
-
-## Appendix: Example Data Schemas
-
-### Example Requirement Schema
-
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Structured Requirement",
-  "type": "object",
-  "required": ["id", "title", "description", "priority", "status"],
-  "properties": {
-    "id": {
-      "type": "string",
-      "pattern": "^REQ-[0-9]{3,6}$"
-    },
-    "title": {
-      "type": "string",
-      "minLength": 5,
-      "maxLength": 100
-    },
-    "description": {
-      "type": "string",
-      "minLength": 10
-    },
-    "submittedBy": {
-      "type": "string",
-      "format": "email"
-    },
-    "submittedAt": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "approvedBy": {
-      "type": "string",
-      "format": "email"
-    },
-    "approvedAt": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "priority": {
-      "type": "string",
-      "enum": ["low", "medium", "high", "critical"]
-    },
-    "type": {
-      "type": "string",
-      "enum": ["feature", "bug", "enhancement", "technical"]
-    },
-    "status": {
-      "type": "string",
-      "enum": ["draft", "review", "approved", "implemented", "verified"]
-    },
-    "userStories": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "asA", "iWant", "soThat"],
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^US-[0-9]{3,6}$"
-          },
-          "asA": {
-            "type": "string"
-          },
-          "iWant": {
-            "type": "string"
-          },
-          "soThat": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "acceptanceCriteria": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "scenario", "given", "when", "then"],
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^AC-[0-9]{3,6}$"
-          },
-          "scenario": {
-            "type": "string"
-          },
-          "given": {
-            "type": "string"
-          },
-          "when": {
-            "type": "string"
-          },
-          "then": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "technicalConstraints": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "attachments": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["name", "contentType", "url"],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "contentType": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string",
-            "format": "uri"
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-### Example Workflow State Schema
-
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Workflow State",
-  "type": "object",
-  "required": ["id", "requirementId", "currentStage", "status", "startedAt", "lastUpdatedAt"],
-  "properties": {
-    "id": {
-      "type": "string",
-      "pattern": "^WF-[0-9]{3,6}$"
-    },
-    "requirementId": {
-      "type": "string",
-      "pattern": "^REQ-[0-9]{3,6}$"
-    },
-    "currentStage": {
-      "type": "string",
-      "enum": [
-        "requirement_analysis",
-        "execution_planning",
-        "code_generation",
-        "testing",
-        "validation",
-        "deployment"
-      ]
-    },
-    "status": {
-      "type": "string",
-      "enum": ["pending", "in_progress", "blocked", "completed", "failed"]
-    },
-    "startedAt": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "lastUpdatedAt": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "stages": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["name", "status"],
-        "properties": {
-          "name": {
-            "type": "string",
-            "enum": [
-              "requirement_analysis",
-              "execution_planning",
-              "code_generation",
-              "testing",
-              "validation",
-              "deployment"
-            ]
-          },
-          "status": {
-            "type": "string",
-            "enum": ["pending", "in_progress", "completed", "failed"]
-          },
-          "startedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "completedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      }
-    },
-    "blockers": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "description", "severity", "createdAt"],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "severity": {
-            "type": "string",
-            "enum": ["low", "medium", "high", "critical"]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "resolvedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "resolution": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "metrics": {
-      "type": "object",
-      "properties": {
-        "timeInStage": {
-          "type": "string"
-        },
-        "totalElapsedTime": {
-          "type": "string"
-        }
-      }
-    }
-  }
-}
-``` 
+- Use webhook integrations between Git and Task Tracking System
+- Implement idempotent API operations for reliable processing
+- Store minimal data in Task Tracking System, link to Git for details
+- Maintain clear audit trail of all AI agent operations
+- Design for eventual consistency in distributed operations 

@@ -2,155 +2,70 @@
 
 ## Overview
 
-This document outlines the high-level architecture for an AI-driven software development pipeline that enables autonomous AI coding agents to build, test, and deploy applications with minimal human oversight. The architecture is designed to support the shift from direct oversight to structured delegation, allowing engineers to focus on product validation and governance rather than code implementation.
+This document details the high-level architecture for an AI-driven software development pipeline that enables autonomous AI coding agents to build applications with human validation at key checkpoints. Building on the [Architecture Overview](architecture_overview.md), this document focuses on system workflows, architectural decisions, and cross-cutting concerns.
 
-## System Components
+## Core Components
 
-The architecture consists of the following core components:
+The architecture consists of four primary components, which are detailed in the [Component Architecture](component_architecture.md) document:
 
-### 1. AI Agent Ecosystem
-
-```mermaid
-graph TD
-    UI[Human Interface] -->|Requirements| TS[(Tracking System)]
-    TS -->|Tasks| PM[Product Agent]
-    TS -->|Tasks| CA[Coding Agent]
-    PM -->|Structured Requirements| TS
-    CA -->|Code| CR[(Code Repository)]
-    UI -->|Validation| TS
-    
-    style PM fill:#4285F4,stroke:#000,stroke-width:1px,color:white
-    style CA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
-    
-    style UI fill:#34A853,stroke:#000,stroke-width:1px,color:white
-    
-    style TS fill:#FBBC05,stroke:#000,stroke-width:1px
-    style CR fill:#FBBC05,stroke:#000,stroke-width:1px
-```
-
-#### 1.1 Human Interface
-- **Purpose**: Provides interaction points for humans to input requirements and validate outputs
-- **Implementation**: Could be Slack, dedicated UI, or other interfaces
-- **Responsibilities**:
-  - Submit unstructured requirements
-  - Review and validate AI outputs
-  - Provide feedback and approvals
-
-#### 1.2 Tracking System
-- **Purpose**: Stores and manages project status, requirements, and work items
-- **Implementation**: Similar to Jira or other work tracking systems
-- **Responsibilities**:
-  - Track project status and progress
-  - Store requirements and specifications
-  - Link requirements to implementation
-  - Maintain work history and audit trail
-
-#### 1.3 Product Agent
-- **Purpose**: Transforms unstructured requirements into structured, AI-readable product specifications
-- **Responsibilities**:
-  - Process raw requirements
-  - Generate structured specifications
-  - Request clarifications when needed
-
-#### 1.4 Coding Agent
-- **Purpose**: Generate code based on structured requirements
-- **Responsibilities**:
-  - Implement features according to specifications
-  - Create tests and documentation
-  - Submit code to repository
-
-### 2. Execution Environment
-
-#### 2.1 Sandboxed Development Environment
-- Isolated Docker containers for AI agent execution
-- Limited access to external resources
-- Controlled API access to prevent unintended side effects
-
-#### 2.2 Version Control and Artifact Repository
-- Store AI-generated code, documentation, and requirements
-- Enable traceability and auditability of all AI activities
-- Support rollback capabilities for failed iterations
-
-#### 2.3 AI Development Dashboard
-- Monitor AI agent performance metrics
-- Track development costs, iteration time, and quality indicators
-- Provide insights into system health and potential issues
-
-### 3. Validation Framework
-
-#### 3.1 Automated Testing Suite
-- Integration tests to validate AI-generated code
-- Security and compliance scanning tools
-- Performance testing frameworks
-
-#### 3.2 Human Validation Checkpoints
-- Product requirements validation
-- Execution plan review
-- Code security and compliance checks
-- Integration test validation
-- Production monitoring and incident escalation
+1. **Human Interface**: Entry point for requirements and validation
+2. **Task Tracking System**: Manages workflow status and progression
+3. **Product Agent**: Processes requirements and generates specifications
+4. **Coding Agent**: Generates code based on specifications
 
 ## System Workflows
 
-### 1. Product Requirements Definition
+### 1. Requirements Processing Workflow
 
 ```mermaid
 sequenceDiagram
-    participant PM as Product Manager
-    participant RA as Requirements Agent
-    participant VCS as Version Control
-
-    PM->>RA: Submit unstructured requirements
-    RA->>RA: Process and structure requirements
-    RA->>PM: Request clarification (if needed)
-    PM->>RA: Provide additional details
-    RA->>PM: Present structured requirements
-    PM->>RA: Approve requirements
-    RA->>VCS: Store approved requirements
+    participant User
+    participant HI as Human Interface
+    participant TTS as Task Tracking System
+    participant PA as Product Agent
+    participant Git as Git Repository
+    
+    User->>HI: Submit requirements
+    HI->>Git: Store PRD as markdown
+    HI->>TTS: Create task with PRD link
+    TTS->>PA: Assign for processing
+    PA->>Git: Fetch PRD markdown
+    PA->>TTS: Update status (VerifyingPRD)
+    alt PRD needs clarification
+        PA->>HI: Request clarification
+        User->>HI: Provide feedback
+        PA->>Git: Update PRD
+    end
+    PA->>TTS: Submit structured requirements
+    TTS->>HI: Request validation
+    User->>HI: Approve requirements
 ```
 
-### 2. Code Generation and Validation
+### 2. Code Generation Workflow
 
 ```mermaid
 sequenceDiagram
-    participant VCS as Version Control
-    participant O as Orchestrator
-    participant SE as Software Engineer Agent
-    participant TS as Testing Suite
-    participant SA as Systems Architect
-    participant QA as QA Engineer
-
-    O->>VCS: Retrieve requirements
-    O->>SE: Assign development tasks
-    SE->>O: Generate execution plan
-    O->>SA: Present execution plan for review
-    SA->>O: Approve execution plan
-    O->>SE: Authorize code generation
-    SE->>SE: Generate code
-    SE->>TS: Submit code for testing
-    TS->>O: Report test results
-    O->>QA: Present code for validation
-    QA->>O: Approve code (if valid)
-    O->>VCS: Store approved code
-```
-
-### 3. Deployment and Monitoring
-
-```mermaid
-sequenceDiagram
-    participant O as Orchestrator
-    participant VCS as Version Control
-    participant DP as Deployment Pipeline
-    participant PM as Production Monitoring
-    participant EM as Engineering Manager
-
-    O->>VCS: Retrieve approved code
-    O->>DP: Initiate deployment
-    DP->>DP: Deploy to isolated environment
-    DP->>PM: Enable monitoring
-    PM->>PM: Monitor application performance
-    PM->>EM: Alert on anomalies (if any)
-    EM->>O: Request adjustments (if needed)
+    participant User
+    participant HI as Human Interface
+    participant TTS as Task Tracking System
+    participant CA as Coding Agent
+    participant Git as Git Repository
+    
+    TTS->>CA: Assign for development
+    CA->>TTS: Submit architecture plan
+    TTS->>HI: Request validation
+    User->>HI: Approve plan
+    CA->>TTS: Submit execution plan
+    TTS->>HI: Request validation
+    User->>HI: Approve plan
+    CA->>TTS: Update status (InDevelopment)
+    CA->>Git: Commit code
+    CA->>TTS: Update status (CodeReview)
+    TTS->>HI: Request code review
+    User->>HI: Approve code
+    CA->>TTS: Run tests
+    TTS->>HI: Present test results
+    User->>HI: Approve for deployment
 ```
 
 ## Architectural Decisions
@@ -158,26 +73,26 @@ sequenceDiagram
 ### AD-1: Microservices Architecture
 - **Decision**: Adopt a microservices architecture for AI-generated applications
 - **Rationale**: 
-  - Limits AI context exposure
-  - Allows agents to generate isolated, self-contained components
+  - Limits each AI agent's context to specific domains
+  - Enables focused development with clear interfaces
   - Reduces risk of cascading failures
-  - Enables partial updates without system-wide changes
+  - Allows for progressive enhancements
 
-### AD-2: Behavior-Driven Development (BDD) Approach
-- **Decision**: Use BDD for defining requirements and validation criteria
+### AD-2: Git-Based PRD Management
+- **Decision**: Store product requirements as markdown files in Git
 - **Rationale**:
-  - Provides clear, structured scenarios for AI to follow
-  - Enables automated validation of business requirements
-  - Creates a common language between business and technical stakeholders
-  - Serves as a guardrail for AI-driven development
+  - Provides version control for requirements
+  - Enables transparent change tracking
+  - Facilitates human readability and editing
+  - Integrates with existing development workflows
 
-### AD-3: Isolated Execution Environments
-- **Decision**: Run AI agents in sandboxed Docker containers
+### AD-3: Task Status-Driven Orchestration
+- **Decision**: Drive workflow progression through explicit task statuses
 - **Rationale**:
-  - Prevents unintended system modifications
-  - Limits the impact of AI hallucinations or errors
-  - Provides consistent, reproducible environments
-  - Enables safe parallel execution of multiple agents
+  - Creates clear visibility of work in progress
+  - Enables precise targeting of human validation points
+  - Provides consistent process across different task types
+  - Facilitates automation based on well-defined transitions
 
 ### AD-4: Human Validation Checkpoints
 - **Decision**: Implement mandatory human validation at key decision points
@@ -190,62 +105,38 @@ sequenceDiagram
 ## Security Considerations
 
 ### Access Control
-- AI agents operate with least-privilege access
-- Different permission levels for different agent types
-- Strict API access controls to prevent unauthorized actions
+- Role-based permissions for different user types
+- Least privilege access for AI agents
+- API access controls with strong authentication
 
 ### Code Security
-- Automated security scanning for all AI-generated code
+- Automated security scanning for AI-generated code
+- Pre-commit validation for security standards
 - Regular vulnerability assessments
-- Integration with existing security practices and tools
 
 ### Data Protection
-- Encryption of sensitive requirements and specifications
+- Encryption for sensitive requirements
 - Access logging for all system interactions
-- Compliance with relevant data protection regulations
+- Validation of data integrity across transformations
 
 ## Scalability Considerations
 
-### Agent Pooling
-- Dynamic scaling of AI agent instances based on workload
-- Load balancing across agent pools
-- Resource allocation optimization
+### Agent Scaling
+- Stateless AI agent design allows horizontal scaling
+- Independent scaling of Product and Coding agents
+- Containerized deployment enables dynamic resource allocation
 
-### Resource Management
-- Efficient use of computational resources
-- Cost monitoring and optimization
-- Performance benchmarking and improvement
+### Task Distribution
+- Asynchronous task processing reduces coupling
+- Task prioritization for efficient resource utilization
+- Parallel processing of independent tasks
 
-## Implementation Roadmap
+## Next Steps
 
-The architecture will be implemented in phases:
+Once the architecture is understood, refer to the following documents for more detailed information:
 
-### Phase 1: Foundation
-- Set up isolated development environments
-- Implement version control integration
-- Develop initial AI agent prototypes
-- Create basic monitoring dashboard
-
-### Phase 2: Core Functionality
-- Develop requirements processing capabilities
-- Implement code generation for non-critical components
-- Create automated testing framework
-- Establish validation checkpoints
-
-### Phase 3: Advanced Features
-- Enhance orchestration capabilities
-- Implement full microservices support
-- Develop comprehensive monitoring and analytics
-- Enable production deployment pipeline
-
-### Phase 4: Optimization
-- Improve AI agent efficiency and reliability
-- Enhance security measures
-- Optimize resource utilization
-- Scale the system for larger applications
-
-## Conclusions
-
-This architecture provides a foundation for an AI-driven development pipeline that balances autonomy with appropriate human oversight. By implementing a structured system with clear validation checkpoints, the architecture aims to leverage the capabilities of AI agents while maintaining the quality, security, and business alignment of the resulting software.
-
-The success of this approach will be measured using the metrics defined in the AI Development Dashboard, including total cost, iteration time, change failure rate, and lead time. These metrics will guide ongoing optimization and evolution of the architecture. 
+1. [Component Architecture](component_architecture.md) - Detailed component specifications
+2. [Data Flow Architecture](data_flow_architecture.md) - Data transformations
+3. [Security Architecture](security_architecture.md) - Comprehensive security controls
+4. [Technology Stack](technology_stack.md) - Implementation technologies
+5. [Implementation Plan](implementation_plan.md) - Phased approach to building the system 
