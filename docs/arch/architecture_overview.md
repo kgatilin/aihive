@@ -25,14 +25,17 @@ The AI-driven development pipeline aims to transform software development by ena
 ```mermaid
 graph TD
     UI[Human Interface] -->|Requirements| TS[(Tracking System)]
-    TS -->|Tasks| PM[Product Agent]
-    TS -->|Tasks| CA[Coding Agent]
-    PM -->|Structured Requirements| TS
+    TS -->|Tasks| OA[Orchestrator Agent]
+    OA -->|Requirements Tasks| PM[Product Agent]
+    OA -->|Coding Tasks| CA[Coding Agent]
+    PM -->|Structured Requirements| OA
     CA -->|Code| CR[(Code Repository)]
     UI -->|Validation| TS
+    OA -->|Status Updates| TS
     
     style PM fill:#4285F4,stroke:#000,stroke-width:1px,color:white
     style CA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style OA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
     
     style UI fill:#34A853,stroke:#000,stroke-width:1px,color:white
     
@@ -46,11 +49,14 @@ Entry point for requirements submission and human validation, implemented via Sl
 ### Task Tracking System
 Central system for managing work items, statuses, and progress. Tasks flow through multiple validation states, ensuring quality at each step.
 
+### Orchestrator Agent
+Coordinates the workflow by assigning tasks to appropriate agents, monitoring progress, and ensuring smooth transitions between stages. Responsible for pushing tasks through the pipeline and maintaining system-wide consistency.
+
 ### Product Agent
-AI agent that transforms unstructured requirements into structured specifications, generating acceptance criteria and implementation plans.
+AI agent that transforms unstructured requirements into structured specifications, generating acceptance criteria and implementation plans. Focused solely on requirements processing tasks assigned by the Orchestrator.
 
 ### Coding Agent
-AI agent that generates code based on structured requirements, creates tests, and handles implementation tasks.
+AI agent that generates code based on structured requirements, creates tests, and handles implementation tasks. Focused solely on code generation tasks assigned by the Orchestrator.
 
 ## Key Architectural Patterns
 
