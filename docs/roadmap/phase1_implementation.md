@@ -2,14 +2,15 @@
 
 ## Overview
 
-Phase 1 focuses on implementing the foundation of the AI-driven development pipeline, with particular emphasis on the product refinement workflow. This phase will establish the basic backbone of the system, implementing the Human Interface, Task Tracking System, Orchestrator Agent, and Product Manager Agent.
+Phase 1 focuses on implementing the foundation of the AI-driven development pipeline, with particular emphasis on the product refinement workflow. This phase will establish the basic backbone of the system, implementing the Human Interface, Task Tracking System, Orchestrator Agent, and Product Manager Agent with an asynchronous, event-driven architecture to enable scalability.
 
 ## Goals
 
-- Implement a functional product refinement workflow
+- Implement a functional product refinement workflow with asynchronous interactions
 - Create system backbone with interface abstractions
 - Enable PRD creation and refinement
 - Establish communication between Human Interface and AI agents
+- Support scalable agent deployment
 
 ## Domain Model
 
@@ -19,21 +20,25 @@ Phase 1 focuses on implementing the foundation of the AI-driven development pipe
    - Responsible for user interactions through various channels
    - Manages message formatting and notification delivery
    - Adapts external communication protocols to internal formats
+   - Provides asynchronous message queue for handling requests
 
 2. **Task Management Context**
    - Tracks the lifecycle of work items through the system
    - Manages task state transitions and history
    - Provides query capabilities for task status and attributes
+   - Supports task prioritization and assignment
 
 3. **Product Definition Context**
    - Manages structured product requirement documents
    - Handles versioning and storage of requirements
    - Processes clarification requests and responses
+   - Works asynchronously on assigned tasks
 
 4. **Orchestration Context**
    - Coordinates the overall workflow between contexts
    - Routes messages and commands to appropriate domains
    - Maintains the state machine of business processes
+   - Performs periodic scanning of tasks for scheduling work
 
 ### Domain Events
 
@@ -41,12 +46,28 @@ The system uses an event-driven architecture with the following core events:
 
 1. **User Request Submitted**: Triggered when a user submits a new request
 2. **Task Created**: Triggered when a new task is created from a request
-3. **PRD Development Needed**: Triggered when a task requires PRD creation
-4. **Clarification Requested**: Triggered when more information is needed
-5. **Clarification Provided**: Triggered when a user responds to clarification
-6. **PRD Created**: Triggered when a product requirements document is finished
-7. **PRD Updated**: Triggered when a product requirements document is modified
-8. **Task Status Updated**: Triggered when a task changes status
+3. **Task Status Changed**: Triggered when a task changes status
+4. **Task Assigned**: Triggered when a task is assigned to an agent
+5. **Task Comment Added**: Triggered when a comment is added to a task
+6. **Clarification Requested**: Triggered when more information is needed
+7. **Clarification Provided**: Triggered when a user responds to clarification
+8. **PRD Created**: Triggered when a product requirements document is finished
+9. **PRD Updated**: Triggered when a product requirements document is modified
+10. **Human Notification Needed**: Triggered when a human needs to be notified
+
+## Task Lifecycle States
+
+The Task entity will transition through the following states:
+
+1. **New**: Initial state when a task is created
+2. **Request Validation**: Assigned to Product Manager for initial analysis
+3. **Clarification Needed**: More information is required from the user
+4. **PRD Development**: Product Manager is actively working on PRD
+5. **PRD Validation**: PRD is ready for human validation
+6. **Approved**: PRD has been approved by human validation
+7. **Rejected**: PRD has been rejected and needs revision
+8. **Completed**: Task has been successfully completed
+9. **Cancelled**: Task has been cancelled
 
 ## Architecture Components
 
@@ -54,24 +75,29 @@ The system uses an event-driven architecture with the following core events:
 
 ```mermaid
 graph TD
-    HI[Human Interface] -->|Domain Events| HA[Human Interface API]
-    HA -->|Commands| OA[Orchestration Service]
-    OA -->|Commands| TS[Task Service]
-    OA -->|Commands| PM[Product Definition Service]
-    PM -->|Domain Events| OA
-    TS -->|Domain Events| OA
-    OA -->|Domain Events| HA
-    HA -->|Commands| HI
+    HI[Human Interface] -->|Async Events| HA[Human Interface API]
+    HA -->|Message Queue| OA[Orchestration Service]
+    OA -->|Async Commands| TS[Task Service]
+    OA -->|Async Commands| PM[Product Definition Service]
+    PM -.->|Task Polling| TS
+    PM -->|Async Events| OA
+    TS -->|Async Events| OA
+    OA -->|Async Events| HA
+    HA -->|Async Commands| HI
     
     subgraph "Adapters Layer"
         SA[Slack Adapter]
         RA[Redis Adapter]
         GA[Git Adapter]
+        MQ[Message Queue Adapter]
     end
     
     SA -.->|Implements| HI
     RA -.->|Implements| TS
     GA -.->|Implements| PM
+    MQ -.->|Connects| OA
+    MQ -.->|Connects| PM
+    MQ -.->|Connects| TS
 ```
 
 ### Strategic Domain Design
@@ -81,8 +107,8 @@ graph TD
 1. **Task Aggregate**
    - Root: Task
    - Entities: Comment, TaskHistory
-   - Value Objects: TaskStatus, TaskPriority
-   - Invariants: Task must always have a status
+   - Value Objects: TaskStatus, TaskPriority, TaskAssignment
+   - Invariants: Task must always have a status and priority
 
 2. **Product Requirement Aggregate**
    - Root: ProductRequirement
@@ -104,10 +130,11 @@ graph TD
 
 #### Domain Services
 
-1. **WorkflowOrchestrationService**: Coordinates the overall workflow
+1. **WorkflowOrchestrationService**: Periodically scans tasks and coordinates workflow
 2. **RequirementAnalysisService**: Analyzes and structures requirements
 3. **ClarificationService**: Manages clarification requests and responses
 4. **NotificationService**: Routes notifications to appropriate channels
+5. **TaskSchedulingService**: Assigns tasks to available agents based on priority
 
 ### Tactical Design
 
@@ -115,39 +142,42 @@ graph TD
 
 - **Responsibility**: Provide abstraction for user interaction
 - **Key Methods**: 
-  - Send message to user
-  - Send notification to user
+  - Send message to user (async)
+  - Send notification to user (async)
   - Register message handler
-  - Start event listener
+  - Process incoming messages (async)
 
 #### Task Service API (Port)
 
 - **Responsibility**: Manage task lifecycle
 - **Key Methods**:
-  - Create task
-  - Update task status
-  - Add comment to task
-  - Query tasks by status or user
+  - Create task (async)
+  - Update task status (async)
+  - Add comment to task (async)
+  - Query tasks by status, priority, or assignment
+  - Assign task to agent (async)
 
 #### Product Definition API (Port)
 
 - **Responsibility**: Manage product requirements
 - **Key Methods**:
-  - Create product requirement
-  - Update product requirement
-  - Request clarification
+  - Create product requirement (async)
+  - Update product requirement (async)
+  - Request clarification (async)
   - Get requirement history
+  - Poll for assigned tasks
 
 #### Orchestration API (Port)
 
 - **Responsibility**: Coordinate workflow between domains
 - **Key Methods**:
-  - Process incoming message
-  - Route event to appropriate domain service
-  - Manage workflow state transitions
+  - Process incoming message (async)
+  - Scan tasks for scheduling (periodic)
+  - Route event to appropriate domain service (async)
+  - Manage workflow state transitions (async)
   - Handle error conditions
 
-## Workflow Implementation
+## Asynchronous Workflow Implementation
 
 ```mermaid
 sequenceDiagram
@@ -157,33 +187,58 @@ sequenceDiagram
     participant TS as Task Service
     participant PDS as Product Definition Service
     
-    User->>HI: Submit new request
-    HI->>OS: UserRequestSubmitted event
-    OS->>TS: CreateTask command
-    TS-->>OS: TaskCreated event
-    OS->>TS: UpdateTaskStatus command (NeedPRDDev)
-    OS->>PDS: AnalyzeRequirement command
+    User->>HI: Submit request (with/without context ID)
+    HI->>OS: UserRequestSubmitted event (async)
     
-    alt Requires Clarification
-        PDS->>OS: ClarificationNeeded event
-        OS->>TS: UpdateTaskStatus command (ClarificationRequested)
-        OS->>HI: RequestClarification command
-        HI->>User: Send clarification request
-        User->>HI: Provide clarification
-        HI->>OS: ClarificationProvided event
-        OS->>PDS: ProcessClarification command
+    Note over OS: Processes event
+    
+    alt New Request (no context ID)
+        OS->>TS: CreateTask command (async)
+        Note over TS: Creates task with "New" status
+        TS-->>OS: TaskCreated event (async)
+    else Existing Task (with context ID)
+        OS->>TS: GetTask command (async)
+        TS-->>OS: Task data
+        OS->>TS: AddComment command (async)
     end
     
-    PDS->>OS: PRDCreated event
-    OS->>TS: UpdateTaskStatus command (PRDCreated)
-    OS->>HI: SendNotification command
-    HI->>User: Notify PRD creation
-    User->>HI: Request PRD review
-    HI->>OS: PRDReviewRequested event
-    OS->>PDS: GetPRD command
-    PDS-->>OS: PRD data
-    OS->>HI: SendPRD command
-    HI->>User: Send PRD for review
+    Note over OS: Periodic task scanning
+    OS->>TS: Query tasks with "New" status
+    TS-->>OS: List of "New" tasks
+    
+    loop For each New task
+        OS->>TS: UpdateTaskStatus command (async, "Request Validation")
+        OS->>TS: AssignTask command (async, assign to Product Manager)
+    end
+    
+    Note over PDS: Periodic task polling
+    PDS->>TS: Query tasks assigned to Product Manager
+    TS-->>PDS: List of assigned tasks
+    
+    Note over PDS: Takes highest priority task
+    
+    PDS->>TS: UpdateTaskStatus command (async, "PRD Development")
+    
+    alt Requires Clarification
+        PDS->>TS: AddComment command (async, clarification question)
+        PDS->>TS: UpdateTaskStatus command (async, "Clarification Needed")
+        OS->>TS: Query tasks with "Clarification Needed" status
+        TS-->>OS: Tasks needing clarification
+        OS->>HI: SendNotification command (async)
+        HI->>User: Request clarification
+        User->>HI: Provide clarification
+        HI->>OS: ClarificationProvided event (async)
+        OS->>TS: AddComment command (async, clarification answer)
+        OS->>TS: UpdateTaskStatus command (async, "Request Validation")
+    else Has Sufficient Information
+        PDS->>PM Storage: Store PRD document (async)
+        PDS->>TS: UpdateTask command (async, add PRD link)
+        PDS->>TS: UpdateTaskStatus command (async, "PRD Validation")
+        OS->>TS: Query tasks with "PRD Validation" status
+        TS-->>OS: Tasks needing PRD validation
+        OS->>HI: SendNotification command (async, PRD ready)
+        HI->>User: Notify PRD ready for review
+    end
 ```
 
 ## Implementation Plan
@@ -195,19 +250,21 @@ sequenceDiagram
 - Define repositories and persistence abstraction
 - Create initial domain services
 - Implement event system for domain events
+- Set up message queuing infrastructure for asynchronous communication
 
 ### Week 3-4: Agent Implementation
 
-- Implement AI-based domain services
+- Implement AI-based domain services with asynchronous processing
 - Define agent responsibility boundaries
 - Create agent tools and reasoning capabilities
-- Implement prompt engineering templates
+- Implement task polling and processing logic
 - Test agent decision-making processes
 
 ### Week 5-6: Workflow Integration
 
-- Connect domain contexts through events
-- Implement workflow state machine
+- Connect domain contexts through asynchronous events
+- Implement periodic task scanning service
+- Implement priority-based task assignment
 - Create adapters for external systems
 - Implement error handling and recovery mechanisms
 - Set up event monitoring and logging
@@ -216,19 +273,22 @@ sequenceDiagram
 
 - Polish user experience
 - Optimize agent prompts and tools
+- Implement monitoring for async processes
 - Improve error handling and edge cases
 - Create comprehensive documentation
 - Prepare for demo and user testing
 
 ## Success Criteria
 
-- A user can submit a new request via Slack
-- The system creates a task and assigns it to the Product Manager Agent
-- The Product Manager Agent can create a PRD or request clarifications
+- User can submit a request with or without context ID
+- The system creates tasks and assigns appropriate status
+- Orchestrator periodically scans tasks and schedules work
+- Product Manager agents poll for and process assigned tasks
+- The system handles clarification requests asynchronously
 - PRDs are stored with proper versioning
-- The user receives notifications about task status changes
-- The system maintains conversation context across interactions
-- PRDs are well-structured and follow a consistent format
+- The system sends appropriate notifications to users
+- Multiple agents can work in parallel without conflicts
+- Task priorities are respected in assignment
 
 ## Next Steps
 
@@ -237,4 +297,5 @@ After successful implementation of Phase 1, we will proceed to:
 1. Implementing Code Generation workflow in Phase 2
 2. Adding human validation checkpoints for PRD approval
 3. Enhancing the Product Manager Agent with more advanced capabilities
-4. Adding support for additional Human Interface implementations 
+4. Adding support for additional Human Interface implementations
+5. Implementing load balancing for multiple agent instances 
