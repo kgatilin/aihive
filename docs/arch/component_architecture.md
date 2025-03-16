@@ -16,15 +16,15 @@ graph TD
     PA[Product Agent]
     CA[Coding Agent]
     
-    HI -->|1. Submit Requirements| TTS
-    TTS -->|2. Notify New Task| OA
-    OA -->|3. Assign Task| PA
-    PA -->|4. Return Processed Requirements| OA
-    OA -->|5. Update Task Status| TTS
-    HI -->|6. Review & Validate| TTS
-    OA -->|7. Assign Implementation| CA
-    CA -->|8. Return Generated Code| OA
-    OA -->|9. Request Human Review| HI
+    HI -->|Submit Requirements| TTS
+    TTS -->|Notify New Task| OA
+    OA -->|Assign Task| PA
+    PA -->|Return Processed Requirements| OA
+    OA -->|Update Task Status| TTS
+    HI -->|Review & Validate| TTS
+    OA -->|Assign Implementation| CA
+    CA -->|Return Generated Code| OA
+    OA -->|Request Human Review| HI
 ```
 
 ### Human Interface
