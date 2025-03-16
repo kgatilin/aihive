@@ -12,58 +12,52 @@ The architecture consists of the following core components:
 
 ```mermaid
 graph TD
-    PM[Product Manager] --> RA[Requirements Agent]
-    RA --> RR[(Requirements Repository)]
-    RR --> OA[Orchestrator Agent]
-    OA --> SEA[Software Engineer Agent]
-    SEA --> CR[(Code Repository)]
-    SEA --> TS[Testing Suite]
-    OA --> DP[Deployment Pipeline]
-    DP --> PE[Production Environment]
+    UI[Human Interface] -->|Requirements| TS[(Tracking System)]
+    TS -->|Tasks| PM[Product Agent]
+    TS -->|Tasks| CA[Coding Agent]
+    PM -->|Structured Requirements| TS
+    CA -->|Code| CR[(Code Repository)]
+    UI -->|Validation| TS
     
-    SA[System Architect] --> OA
-    QA[QA Engineer] --> SEA
+    style PM fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style CA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
     
-    style RA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
-    style OA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
-    style SEA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style UI fill:#34A853,stroke:#000,stroke-width:1px,color:white
     
-    style PM fill:#34A853,stroke:#000,stroke-width:1px,color:white
-    style SA fill:#34A853,stroke:#000,stroke-width:1px,color:white
-    style QA fill:#34A853,stroke:#000,stroke-width:1px,color:white
-    
-    style RR fill:#FBBC05,stroke:#000,stroke-width:1px
+    style TS fill:#FBBC05,stroke:#000,stroke-width:1px
     style CR fill:#FBBC05,stroke:#000,stroke-width:1px
-    
-    style TS fill:#9AA0A6,stroke:#000,stroke-width:1px
-    style DP fill:#9AA0A6,stroke:#000,stroke-width:1px
-    style PE fill:#9AA0A6,stroke:#000,stroke-width:1px
 ```
 
-#### 1.1 Product Requirements Agent
+#### 1.1 Human Interface
+- **Purpose**: Provides interaction points for humans to input requirements and validate outputs
+- **Implementation**: Could be Slack, dedicated UI, or other interfaces
+- **Responsibilities**:
+  - Submit unstructured requirements
+  - Review and validate AI outputs
+  - Provide feedback and approvals
+
+#### 1.2 Tracking System
+- **Purpose**: Stores and manages project status, requirements, and work items
+- **Implementation**: Similar to Jira or other work tracking systems
+- **Responsibilities**:
+  - Track project status and progress
+  - Store requirements and specifications
+  - Link requirements to implementation
+  - Maintain work history and audit trail
+
+#### 1.3 Product Agent
 - **Purpose**: Transforms unstructured requirements into structured, AI-readable product specifications
 - **Responsibilities**:
-  - Clarify ambiguities in product requirements
-  - Request missing details from product managers
-  - Generate structured requirements documents
-  - Store requirements in version-controlled repositories
-  
-#### 1.2 AI Software Engineer Agent
+  - Process raw requirements
+  - Generate structured specifications
+  - Request clarifications when needed
+
+#### 1.4 Coding Agent
 - **Purpose**: Generate code based on structured requirements
 - **Responsibilities**:
   - Implement features according to specifications
-  - Write tests to validate implementation
-  - Follow architectural patterns and guidelines
-  - Generate documentation for code
-  
-#### 1.3 Orchestrator Agent
-- **Purpose**: Coordinate activities across all AI agents
-- **Responsibilities**:
-  - Maintain architectural integrity
-  - Ensure integration test compliance
-  - Update system documentation
-  - Detect and correct inconsistencies between agents
-  - Escalate issues requiring human intervention
+  - Create tests and documentation
+  - Submit code to repository
 
 ### 2. Execution Environment
 

@@ -32,41 +32,31 @@ The architecture follows a microservices approach with event-driven communicatio
 
 ```mermaid
 graph TD
-    PM[Product Manager] --> RA[Requirements Agent]
-    RA --> RR[(Requirements Repository)]
-    RR --> OA[Orchestrator Agent]
-    OA --> SEA[Software Engineer Agent]
-    SEA --> CR[(Code Repository)]
-    SEA --> TS[Testing Suite]
-    OA --> DP[Deployment Pipeline]
-    DP --> PE[Production Environment]
+    UI[Human Interface] -->|Requirements| TS[(Tracking System)]
+    TS -->|Tasks| PM[Product Agent]
+    TS -->|Tasks| CA[Coding Agent]
+    PM -->|Structured Requirements| TS
+    CA -->|Code| CR[(Code Repository)]
+    UI -->|Validation| TS
     
-    SA[System Architect] --> OA
-    QA[QA Engineer] --> SEA
+    style PM fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style CA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
     
-    style RA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
-    style OA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
-    style SEA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style UI fill:#34A853,stroke:#000,stroke-width:1px,color:white
     
-    style PM fill:#34A853,stroke:#000,stroke-width:1px,color:white
-    style SA fill:#34A853,stroke:#000,stroke-width:1px,color:white
-    style QA fill:#34A853,stroke:#000,stroke-width:1px,color:white
-    
-    style RR fill:#FBBC05,stroke:#000,stroke-width:1px
+    style TS fill:#FBBC05,stroke:#000,stroke-width:1px
     style CR fill:#FBBC05,stroke:#000,stroke-width:1px
-    
-    style TS fill:#9AA0A6,stroke:#000,stroke-width:1px
-    style DP fill:#9AA0A6,stroke:#000,stroke-width:1px
-    style PE fill:#9AA0A6,stroke:#000,stroke-width:1px
 ```
 
-The heart of the system consists of three primary AI agent types:
+The core system consists of these primary components:
 
-1. **Product Requirements Agent**: Transforms unstructured requirements into structured, AI-readable product specifications.
+1. **Human Interface**: Entry point for requirements and human validation.
 
-2. **AI Software Engineer Agent**: Generates code based on structured requirements, following architectural patterns and creating appropriate tests.
+2. **Tracking System**: Manages project status, requirements, and links between artifacts.
 
-3. **Orchestrator Agent**: Coordinates activities across all AI agents, maintains architectural integrity, and manages workflow progression.
+3. **Product Agent**: Transforms unstructured requirements into structured specifications.
+
+4. **Coding Agent**: Generates code based on structured requirements.
 
 #### Execution Environment
 
@@ -220,36 +210,24 @@ The following diagram illustrates the high-level reference architecture for the 
 
 ```mermaid
 graph TD
-    PM[Product Manager] --> RA
+    UI[Human Interface] <--> TS[(Tracking System)]
     
     subgraph "AI Development Pipeline"
-    RA[Requirements Agent] <--> VCS[(Version Control System)]
-    RA <--> RR[(Requirement Repository)]
-    
-    VCS <--> SEA
-    OA[Orchestrator Agent] <--> WF[(Workflow Database)]
-    OA --> SEA[Software Engineer Agent]
-    SEA <--> TF[Testing Framework]
-    
-    SEA --> DP[Deployment Pipeline]
-    DP <--> MS[Monitoring System]
-    DP --> PROD[Production Environment]
+    TS <--> PM[Product Agent]
+    TS <--> CA[Coding Agent]
+    CA <--> CR[(Code Repository)]
+    CA <--> TF[Testing Framework]
     end
     
-    style RA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
-    style OA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
-    style SEA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style PM fill:#4285F4,stroke:#000,stroke-width:1px,color:white
+    style CA fill:#4285F4,stroke:#000,stroke-width:1px,color:white
     
-    style PM fill:#34A853,stroke:#000,stroke-width:1px,color:white
+    style UI fill:#34A853,stroke:#000,stroke-width:1px,color:white
     
-    style VCS fill:#FBBC05,stroke:#000,stroke-width:1px
-    style RR fill:#FBBC05,stroke:#000,stroke-width:1px
-    style WF fill:#FBBC05,stroke:#000,stroke-width:1px
+    style TS fill:#FBBC05,stroke:#000,stroke-width:1px
+    style CR fill:#FBBC05,stroke:#000,stroke-width:1px
     
     style TF fill:#9AA0A6,stroke:#000,stroke-width:1px
-    style DP fill:#9AA0A6,stroke:#000,stroke-width:1px
-    style MS fill:#9AA0A6,stroke:#000,stroke-width:1px
-    style PROD fill:#9AA0A6,stroke:#000,stroke-width:1px
 ```
 
 ## Conclusion
