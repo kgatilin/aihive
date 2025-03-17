@@ -14,195 +14,195 @@ logger = logging.getLogger(__name__)
 
 
 class OrchestratorAgent(ABC):
-    """Abstract base class for orchestrator agents that manage task progression."""
+    """Base class for orchestrator agents that manage task progression."""
     
-    def __init__(self, 
-                 message_broker: MessageBroker,
-                 task_service: TaskService):
-        self.config = Config()
-        self.message_broker = message_broker
+    def __init__(self, task_service: TaskService, message_broker: MessageBroker):
+        """Initialize the orchestrator agent."""
         self.task_service = task_service
-        self.polling_interval = self.config.agent["polling_interval_seconds"]
-        self.max_concurrent_tasks = self.config.agent["max_concurrent_tasks"]
-        self._running = False
-        self._current_tasks = set()  # Set of task IDs currently being processed
+        self.message_broker = message_broker
+        self.running = False
+        self.poll_interval = 60  # Default polling interval in seconds
     
     async def start(self) -> None:
         """Start the orchestrator agent."""
-        if self._running:
-            logger.warning("Orchestrator agent is already running.")
+        if self.running:
+            logger.warning("Orchestrator agent is already running")
             return
         
-        self._running = True
-        logger.info(f"Starting orchestrator agent with polling interval {self.polling_interval}s")
+        self.running = True
+        logger.info(f"{self.__class__.__name__} started")
         
-        # Subscribe to relevant events
-        await self._subscribe_to_events()
+        # Subscribe to events
+        await self.subscribe_to_events()
         
-        # Start the main polling loop
-        asyncio.create_task(self._poll_tasks())
+        # Start polling loop
+        asyncio.create_task(self._polling_loop())
     
     async def stop(self) -> None:
         """Stop the orchestrator agent."""
-        if not self._running:
-            logger.warning("Orchestrator agent is not running.")
+        if not self.running:
+            logger.warning("Orchestrator agent is not running")
             return
         
-        self._running = False
-        logger.info("Stopping orchestrator agent.")
+        self.running = False
+        logger.info(f"{self.__class__.__name__} stopped")
     
-    async def _poll_tasks(self) -> None:
-        """Periodically check for tasks that need to be processed."""
-        while self._running:
+    @abstractmethod
+    async def subscribe_to_events(self) -> None:
+        """Subscribe to relevant events."""
+        pass
+    
+    @abstractmethod
+    async def poll_tasks(self) -> None:
+        """Poll for tasks that need attention."""
+        pass
+    
+    async def _polling_loop(self) -> None:
+        """Background polling loop for tasks."""
+        while self.running:
             try:
-                # Only process new tasks if we're below the concurrency limit
-                if len(self._current_tasks) < self.max_concurrent_tasks:
-                    # Find tasks that need processing
-                    available_slots = self.max_concurrent_tasks - len(self._current_tasks)
-                    await self._find_and_process_tasks(available_slots)
-                
-                # Wait for the next polling interval
-                await asyncio.sleep(self.polling_interval)
+                await self.poll_tasks()
             except Exception as e:
-                logger.error(f"Error in orchestrator polling loop: {str(e)}")
-                # Continue the loop despite errors
-                await asyncio.sleep(self.polling_interval)
-    
-    async def _find_and_process_tasks(self, max_tasks: int) -> None:
-        """Find tasks that need to be processed and start processing them."""
-        # Implementation will depend on the specific orchestrator's logic
-        # This should be overridden by subclasses
-        pass
-    
-    async def _subscribe_to_events(self) -> None:
-        """Subscribe to relevant domain events."""
-        # Subscribe to TaskCreatedEvent
-        await self.message_broker.subscribe_to_event(
-            "task.created",
-            self._handle_task_created_event,
-            f"orchestrator-task-created-{id(self)}"
-        )
-        
-        # Subscribe to TaskStatusChangedEvent
-        await self.message_broker.subscribe_to_event(
-            "task.status_changed",
-            self._handle_task_status_changed_event,
-            f"orchestrator-task-status-changed-{id(self)}"
-        )
-        
-        # Subscribe to TaskCompletedEvent
-        await self.message_broker.subscribe_to_event(
-            "task.completed",
-            self._handle_task_completed_event,
-            f"orchestrator-task-completed-{id(self)}"
-        )
-    
-    async def _handle_task_created_event(self, event: Any) -> None:
-        """Handle a task created event."""
-        logger.info(f"Orchestrator received task.created event for task {event.task_id}")
-        # Default implementation can be overridden by subclasses
-    
-    async def _handle_task_status_changed_event(self, event: Any) -> None:
-        """Handle a task status changed event."""
-        logger.info(f"Orchestrator received task.status_changed event for task {event.task_id}: {event.previous_status} -> {event.new_status}")
-        # Default implementation can be overridden by subclasses
-    
-    async def _handle_task_completed_event(self, event: Any) -> None:
-        """Handle a task completed event."""
-        logger.info(f"Orchestrator received task.completed event for task {event.task_id}")
-        # Remove the task from current tasks if it's there
-        self._current_tasks.discard(event.task_id)
-        # Default implementation can be overridden by subclasses
-    
-    @abstractmethod
-    async def process_task(self, task: Task) -> None:
-        """Process a single task. Must be implemented by subclasses."""
-        pass
-    
-    @abstractmethod
-    async def determine_next_step(self, task: Task) -> Optional[str]:
-        """Determine the next step for a task. Must be implemented by subclasses.
-        
-        Returns:
-            Optional[str]: The next action to take, or None if no action needed
-        """
-        pass
+                logger.error(f"Error in polling loop: {str(e)}")
+            
+            await asyncio.sleep(self.poll_interval)
 
 
 class ProductRefinementOrchestrator(OrchestratorAgent):
-    """Orchestrator implementation for the Product Refinement workflow."""
+    """Orchestrator agent that manages product refinement tasks."""
     
-    async def _find_and_process_tasks(self, max_tasks: int) -> None:
-        """Find tasks ready for product refinement and process them."""
-        # Look for tasks in CREATED state that haven't been assigned yet
-        created_tasks = await self.task_service.find_tasks_by_status(TaskStatus.CREATED.value)
-        created_tasks = [t for t in created_tasks if t.task_id not in self._current_tasks]
-        
-        # Look for tasks in ASSIGNED state that haven't been started
-        assigned_tasks = await self.task_service.find_tasks_by_status(TaskStatus.ASSIGNED.value)
-        assigned_tasks = [t for t in assigned_tasks if t.task_id not in self._current_tasks]
-        
-        # Combine and sort by priority, creation date, etc.
-        # For simplicity, we'll just take the first max_tasks
-        tasks_to_process = (created_tasks + assigned_tasks)[:max_tasks]
-        
-        # Process each task
-        for task in tasks_to_process:
-            # Mark this task as being processed
-            self._current_tasks.add(task.task_id)
-            
-            # Start a new task to process this
-            asyncio.create_task(self._process_task_with_error_handling(task))
+    def __init__(self, task_service: TaskService, message_broker: MessageBroker):
+        """Initialize the product refinement orchestrator."""
+        super().__init__(task_service, message_broker)
+        self.poll_interval = 300  # Poll every 5 minutes
     
-    async def _process_task_with_error_handling(self, task: Task) -> None:
-        """Process a task with error handling."""
+    async def subscribe_to_events(self) -> None:
+        """Subscribe to relevant events for product refinement tasks."""
+        # Subscribe to task status changes
+        await self.message_broker.subscribe_to_event(
+            "task.status_changed",
+            self._handle_task_status_change
+        )
+        
+        # Subscribe to task created events
+        await self.message_broker.subscribe_to_event(
+            "task.created",
+            self._handle_task_created
+        )
+        
+        logger.info("ProductRefinementOrchestrator subscribed to events")
+    
+    async def _handle_task_status_change(self, event: Dict[str, Any]) -> None:
+        """Handle task status change events."""
         try:
-            await self.process_task(task)
-        except Exception as e:
-            logger.error(f"Error processing task {task.task_id}: {str(e)}")
-        finally:
-            # Remove the task from current tasks
-            self._current_tasks.discard(task.task_id)
-    
-    async def process_task(self, task: Task) -> None:
-        """Process a task in the product refinement workflow."""
-        logger.info(f"ProductRefinementOrchestrator processing task {task.task_id}: {task.title}")
-        
-        # Determine what needs to be done next for this task
-        next_action = await self.determine_next_step(task)
-        
-        if next_action == "assign_to_product_agent":
-            # Assign to product agent if it's a new task
-            await self.task_service.assign_task(
-                task_id=task.task_id,
-                assignee="product_agent",
-                assigned_by="orchestrator",
-                reason="Auto-assigned for requirement refinement"
-            )
-        elif next_action == "start_requirement_refinement":
-            # Change status to IN_PROGRESS and trigger product agent
-            await self.task_service.update_task_status(
-                task_id=task.task_id,
-                new_status=TaskStatus.IN_PROGRESS.value,
-                changed_by="orchestrator",
-                reason="Starting requirement refinement"
-            )
+            task_id = event.get("task_id")
+            new_status = event.get("new_status")
             
-            # Publish command for product agent to begin refinement
-            await self.message_broker.publish_command(
-                "product.refine_requirement",
-                {
-                    "task_id": task.task_id,
-                    "priority": task.priority.value
-                }
-            )
+            if not task_id or not new_status:
+                logger.warning("Invalid task status change event")
+                return
+            
+            # Check if we need to take action based on the new status
+            if new_status == TaskStatus.REVIEW.value:
+                await self._process_task_in_review(task_id)
+        except Exception as e:
+            logger.error(f"Error handling task status change: {str(e)}")
     
-    async def determine_next_step(self, task: Task) -> Optional[str]:
-        """Determine the next step for a task in the product refinement workflow."""
-        if task.status == TaskStatus.CREATED:
-            return "assign_to_product_agent"
-        elif task.status == TaskStatus.ASSIGNED and task.assignee == "product_agent":
-            return "start_requirement_refinement"
-        
-        # No action needed for this task
-        return None 
+    async def _handle_task_created(self, event: Dict[str, Any]) -> None:
+        """Handle task created events."""
+        try:
+            task_id = event.get("task_id")
+            
+            if not task_id:
+                logger.warning("Invalid task created event")
+                return
+            
+            # Check if this is a product refinement task based on tags
+            task = await self.task_service.get_task(task_id)
+            if task and "product_refinement" in task.tags:
+                # Auto-assign to default user if not assigned
+                if not task.assignee:
+                    await self.task_service.assign_task(task_id, "product_owner", "orchestrator")
+                    logger.info(f"Auto-assigned product refinement task {task_id} to product_owner")
+        except Exception as e:
+            logger.error(f"Error handling task created event: {str(e)}")
+    
+    async def _process_task_in_review(self, task_id: str) -> None:
+        """Process a task that has been submitted for review."""
+        try:
+            # Get the task
+            task = await self.task_service.get_task(task_id)
+            if not task:
+                logger.warning(f"Task {task_id} not found for review processing")
+                return
+            
+            # Check if this is a product refinement task
+            if "product_refinement" not in task.tags:
+                return
+            
+            # Notify reviewers
+            logger.info(f"Product refinement task {task_id} is ready for review")
+            
+            # Create a review task if needed
+            await self.task_service.create_task(
+                title=f"Review product refinement: {task.title}",
+                description=f"Review the product refinement task: {task.task_id} - {task.title}",
+                priority="high",
+                created_by="orchestrator",
+                parent_task_id=task.task_id,
+                tags=["review", "product_refinement"]
+            )
+        except Exception as e:
+            logger.error(f"Error processing task in review: {str(e)}")
+    
+    async def poll_tasks(self) -> None:
+        """Poll for product refinement tasks that need attention."""
+        try:
+            # Find tasks that have been in review for too long
+            review_tasks = await self.task_service.find_tasks_by_status(TaskStatus.REVIEW.value)
+            
+            for task in review_tasks:
+                # Check if this is a product refinement task
+                if "product_refinement" not in task.tags:
+                    continue
+                
+                # Check if the task has been in review for more than 48 hours
+                # This would require more sophisticated time tracking in a real system
+                logger.info(f"Checking review status for task {task.task_id}")
+                
+                # Additional orchestration logic would go here
+        except Exception as e:
+            logger.error(f"Error polling tasks: {str(e)}")
+    
+    async def determine_next_task(self, completed_task_id: str) -> Optional[str]:
+        """Determine the next task based on a completed task."""
+        try:
+            # Get the completed task
+            task = await self.task_service.get_task(completed_task_id)
+            if not task:
+                logger.warning(f"Completed task {completed_task_id} not found")
+                return None
+            
+            # Check if this is a product refinement task
+            if "product_refinement" not in task.tags:
+                return None
+            
+            # Create follow-up tasks based on the task type
+            if "requirement_gathering" in task.tags:
+                # After gathering requirements, create a design task
+                new_task = await self.task_service.create_task(
+                    title=f"Design for: {task.title}",
+                    description=f"Create design based on requirements from task {task.task_id}",
+                    priority=task.priority.value,
+                    created_by="orchestrator",
+                    parent_task_id=task.task_id,
+                    tags=["product_refinement", "design"]
+                )
+                return new_task.task_id
+            
+            # Other task progression logic would go here
+            
+            return None
+        except Exception as e:
+            logger.error(f"Error determining next task: {str(e)}")
+            return None 

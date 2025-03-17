@@ -1,56 +1,68 @@
 import os
-from typing import Dict, Any
+import logging
+from typing import Dict, List, Any
+from functools import lru_cache
+
+
+logger = logging.getLogger(__name__)
+
 
 class Config:
-    _instance = None
+    """Configuration for the application."""
     
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(Config, cls).__new__(cls)
-            cls._instance._load_config()
-        return cls._instance
-    
-    def _load_config(self):
-        self.environment = os.getenv("APP_ENV", "development")
-        
-        # Message queue
-        self.message_queue = {
-            "connection_uri": os.getenv("MESSAGE_QUEUE_URI", "amqp://guest:guest@localhost/"),
-            "event_exchange": os.getenv("MESSAGE_QUEUE_EVENT_EXCHANGE", "domain_events"),
-            "command_exchange": os.getenv("MESSAGE_QUEUE_COMMAND_EXCHANGE", "commands"),
-            "task_assignment_queue": os.getenv("TASK_ASSIGNMENT_QUEUE", "task_assignments"),
-            "notification_queue": os.getenv("NOTIFICATION_QUEUE", "notifications")
-        }
-        
-        # Database
+    def __init__(self):
+        """Initialize the configuration."""
+        # Database configuration
         self.database = {
-            "connection_uri": os.getenv("DATABASE_URI", "mongodb://localhost:27017/aihive"),
-            "database_name": os.getenv("DATABASE_NAME", "aihive")
+            "connection_uri": os.getenv("MONGODB_URI", "mongodb://localhost:27017"),
+            "database_name": os.getenv("MONGODB_DB", "aihive"),
         }
         
-        # Task scanning
-        self.task_scanning = {
-            "interval_seconds": int(os.getenv("TASK_SCANNING_INTERVAL", "300")),  # 5 minutes
-            "batch_size": int(os.getenv("TASK_SCANNING_BATCH_SIZE", "100"))
+        # Message queue configuration
+        self.message_queue = {
+            "connection_uri": os.getenv("RABBITMQ_URI", "amqp://guest:guest@localhost:5672/"),
+            "event_exchange": os.getenv("RABBITMQ_EVENT_EXCHANGE", "aihive.events"),
+            "command_exchange": os.getenv("RABBITMQ_COMMAND_EXCHANGE", "aihive.commands"),
+        }
+        
+        # API configuration
+        self.api = {
+            "host": os.getenv("API_HOST", "0.0.0.0"),
+            "port": int(os.getenv("API_PORT", "8000")),
+            "cors_origins": self._parse_cors_origins(),
+        }
+        
+        # Logging configuration
+        self.logging = {
+            "level": os.getenv("LOG_LEVEL", "INFO"),
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         }
         
         # Agent configuration
         self.agent = {
-            "polling_interval_seconds": int(os.getenv("AGENT_POLLING_INTERVAL", "30")),
-            "max_concurrent_tasks": int(os.getenv("AGENT_MAX_CONCURRENT_TASKS", "5"))
+            "polling_interval_seconds": int(os.getenv("AGENT_POLLING_INTERVAL", "60")),
+            "max_concurrent_tasks": int(os.getenv("AGENT_MAX_CONCURRENT_TASKS", "10")),
         }
-        
-    def get(self, key: str, default: Any = None) -> Any:
-        """Get a configuration value by key."""
-        parts = key.split('.')
-        obj = self
-        
-        for part in parts:
-            if hasattr(obj, part):
-                obj = getattr(obj, part)
-            elif isinstance(obj, dict) and part in obj:
-                obj = obj[part]
-            else:
-                return default
-                
-        return obj 
+    
+    def _parse_cors_origins(self) -> List[str]:
+        """Parse CORS origins from environment variable."""
+        origins_str = os.getenv("CORS_ORIGINS", "*")
+        if origins_str == "*":
+            return ["*"]
+        return [origin.strip() for origin in origins_str.split(",")]
+    
+    def get_all(self) -> Dict[str, Any]:
+        """Get all configuration as a dictionary."""
+        return {
+            "database": self.database,
+            "message_queue": self.message_queue,
+            "api": self.api,
+            "logging": self.logging,
+            "agent": self.agent,
+        }
+
+
+@lru_cache()
+def get_config() -> Config:
+    """Get the application configuration (cached)."""
+    return Config() 
