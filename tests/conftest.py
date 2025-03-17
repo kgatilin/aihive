@@ -1,21 +1,31 @@
 import pytest
+import pytest_asyncio
 import asyncio
 from datetime import datetime
 from typing import Dict, Any, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
+import warnings
 
 from src.task_management.domain.task import Task, TaskStatus, TaskPriority
 from src.core.common.message_broker import MessageBroker
 from src.task_management.domain.task_repository import TaskRepository
 
+# Create pytest hooks to suppress specific warnings
+def pytest_configure(config):
+    """Configure pytest and suppress specific warnings."""
+    # Suppress the asyncio fixture loop scope warning
+    warnings.filterwarnings(
+        "ignore", 
+        message="The configuration option \"asyncio_default_fixture_loop_scope\" is unset",
+        module="pytest_asyncio.plugin"
+    )
+    
+    # Try to set asyncio default fixture loop scope to function
+    plugin = config.pluginmanager.getplugin("asyncio")
+    if plugin:
+        plugin.asyncio_default_fixture_loop_scope = "function"
 
-@pytest.fixture
-def event_loop():
-    """Create an instance of the default event loop for each test case."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
+# Instead of defining a custom event_loop fixture, we'll let pytest-asyncio handle it
 
 @pytest.fixture
 def mock_message_broker():
