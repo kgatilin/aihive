@@ -34,8 +34,8 @@ async def lifespan(app: FastAPI):
     global orchestrator
     
     # Get dependencies
-    task_service = await anext(get_task_service())
-    message_broker = await anext(get_message_broker())
+    task_service = await get_task_service()
+    message_broker = await get_message_broker()
     
     # Create and start the orchestrator
     orchestrator = ProductRefinementOrchestrator(task_service, message_broker)
