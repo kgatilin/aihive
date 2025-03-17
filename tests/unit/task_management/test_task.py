@@ -99,14 +99,22 @@ class TestTask:
         assert task.assignee == "test_user"
         assert task.status == TaskStatus.ASSIGNED
         
-        # Check that a TaskAssignedEvent was generated
+        # Check that the correct events were generated
         events = task.get_pending_events()
-        assert len(events) == 1
-        assert isinstance(events[0], TaskAssignedEvent)
+        assert len(events) == 2
+        
+        # First event should be a TaskStatusChangedEvent
+        assert isinstance(events[0], TaskStatusChangedEvent)
         assert events[0].task_id == task.task_id
-        assert events[0].assignee == "test_user"
-        assert events[0].previous_assignee is None
-        assert events[0].assigned_by == "admin"
+        assert events[0].new_status == TaskStatus.ASSIGNED.value
+        assert events[0].previous_status == TaskStatus.CREATED.value
+        
+        # Second event should be a TaskAssignedEvent
+        assert isinstance(events[1], TaskAssignedEvent)
+        assert events[1].task_id == task.task_id
+        assert events[1].assignee == "test_user"
+        assert events[1].previous_assignee is None
+        assert events[1].assigned_by == "admin"
     
     def test_change_status(self):
         """Test changing a task's status."""

@@ -1,9 +1,8 @@
 import pytest
+import pytest_asyncio
 import asyncio
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock
-
-from motor.motor_asyncio import AsyncIOMotorClient
+from unittest.mock import AsyncMock, MagicMock
 
 from src.task_management.domain.entities.task import Task
 from src.task_management.domain.value_objects.task_status import TaskStatus
@@ -13,22 +12,157 @@ from src.task_management.application.services.task_service import TaskService
 from src.core.message_broker.message_broker_interface import MessageBroker
 
 
-@pytest.fixture
+class MockMongoDBClient:
+    """Mock MongoDB client for testing."""
+    
+    def __init__(self):
+        self.tasks = {}
+        self.indexes = {}
+        self.databases = {}
+    
+    async def admin_command(self, command):
+        """Mock admin command."""
+        return {"ok": 1}
+    
+    def close(self):
+        """Mock close method."""
+        pass
+    
+    def __getitem__(self, name):
+        """Support dictionary-style access to databases."""
+        if name not in self.databases:
+            self.databases[name] = MockMongoDBDatabase(self)
+        return self.databases[name]
+
+
+class MockMongoDBDatabase:
+    """Mock MongoDB database for testing."""
+    
+    def __init__(self, client):
+        self.client = client
+        self.collections = {}
+    
+    async def create_index(self, collection_name, keys, **kwargs):
+        """Mock create_index method."""
+        self.client.indexes[collection_name] = keys
+    
+    async def list_indexes(self, collection_name):
+        """Mock list_indexes method."""
+        return self.client.indexes.get(collection_name, [])
+    
+    def __getitem__(self, name):
+        """Support dictionary-style access to collections."""
+        if name not in self.collections:
+            self.collections[name] = MockMongoDBCollection(self)
+        return self.collections[name]
+    
+    def __getattr__(self, name):
+        """Support attribute access to collections."""
+        if name not in self.collections:
+            self.collections[name] = MockMongoDBCollection(self)
+        return self.collections[name]
+
+
+class AsyncIterator:
+    """Helper class to make an async iterator."""
+    
+    def __init__(self, items):
+        self.items = items
+        self.index = 0
+    
+    def __aiter__(self):
+        return self
+    
+    async def __anext__(self):
+        if self.index >= len(self.items):
+            raise StopAsyncIteration
+        item = self.items[self.index]
+        self.index += 1
+        return item
+
+
+class MockMongoDBCollection:
+    """Mock MongoDB collection for testing."""
+    
+    def __init__(self, database):
+        self.database = database
+        self.documents = {}
+        self.name = "tasks"  # Add name attribute for index creation
+    
+    async def create_index(self, keys, **kwargs):
+        """Mock create_index method."""
+        await self.database.create_index(self.name, keys, **kwargs)
+    
+    async def list_indexes(self):
+        """Mock list_indexes method."""
+        return await self.database.list_indexes(self.name)
+    
+    async def insert_one(self, document):
+        """Mock insert_one method."""
+        doc_id = document.get("_id", str(len(self.documents)))
+        self.documents[doc_id] = document
+        return MagicMock(inserted_id=doc_id)
+    
+    async def find_one(self, query):
+        """Mock find_one method."""
+        if "_id" in query:
+            return self.documents.get(query["_id"])
+        for doc in self.documents.values():
+            if all(doc.get(k) == v for k, v in query.items()):
+                return doc
+        return None
+    
+    def find(self, query=None):
+        """Mock find method."""
+        if query is None:
+            return AsyncIterator(list(self.documents.values()))
+        matching_docs = [doc for doc in self.documents.values() 
+                        if all(doc.get(k) == v for k, v in query.items())]
+        return AsyncIterator(matching_docs)
+    
+    async def update_one(self, query, update, upsert=False):
+        """Mock update_one method."""
+        doc = await self.find_one(query)
+        if doc:
+            if "$set" in update:
+                set_dict = update["$set"]
+                for key in set_dict:
+                    doc[key] = set_dict[key]
+            return MagicMock(modified_count=1)
+        elif upsert:
+            # If upsert is True and document doesn't exist, create it
+            new_doc = update.get("$set", {})
+            if "_id" in query:
+                new_doc["_id"] = query["_id"]
+            await self.insert_one(new_doc)
+            return MagicMock(modified_count=0, upserted_id=new_doc.get("_id"))
+        return MagicMock(modified_count=0)
+    
+    async def delete_many(self, query):
+        """Mock delete_many method."""
+        if query == {}:
+            self.documents.clear()
+            return MagicMock(deleted_count=len(self.documents))
+        deleted_count = 0
+        for doc_id, doc in list(self.documents.items()):
+            if all(doc.get(k) == v for k, v in query.items()):
+                del self.documents[doc_id]
+                deleted_count += 1
+        return MagicMock(deleted_count=deleted_count)
+
+
+@pytest_asyncio.fixture
 async def mongodb_client():
-    """Create a MongoDB client for testing."""
-    # Use a test database
-    client = AsyncIOMotorClient("mongodb://localhost:27017")
-    # Clear the test database before each test
-    await client.aihive_test.tasks.delete_many({})
+    """Create a mock MongoDB client for testing."""
+    client = MockMongoDBClient()
+    client.aihive_test = MockMongoDBDatabase(client)
     yield client
-    # Clean up after tests
-    await client.aihive_test.tasks.delete_many({})
     client.close()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def task_repository(mongodb_client):
-    """Create a task repository with the test MongoDB client."""
+    """Create a task repository with the mock MongoDB client."""
     repo = MongoDBTaskRepository(client=mongodb_client)
     # Override the database name to use the test database
     repo.db = mongodb_client.aihive_test
@@ -47,7 +181,7 @@ def mock_message_broker():
     return broker
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def task_service(task_repository, mock_message_broker):
     """Create a task service with the test repository and mock broker."""
     return TaskService(task_repository, mock_message_broker)
@@ -56,11 +190,9 @@ async def task_service(task_repository, mock_message_broker):
 @pytest.mark.asyncio
 async def test_create_and_retrieve_task(task_service):
     """Test creating a task and retrieving it."""
-    # Arrange
     title = "Integration Test Task"
     description = "This is an integration test task"
     
-    # Act
     created_task = await task_service.create_task(
         title=title,
         description=description,
@@ -68,10 +200,8 @@ async def test_create_and_retrieve_task(task_service):
         created_by="integration_test"
     )
     
-    # Retrieve the task
     retrieved_task = await task_service.get_task(created_task.task_id)
     
-    # Assert
     assert retrieved_task is not None
     assert retrieved_task.task_id == created_task.task_id
     assert retrieved_task.title == title

@@ -6,9 +6,11 @@ from typing import Dict, Any, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 import warnings
 
-from src.task_management.domain.task import Task, TaskStatus, TaskPriority
-from src.core.common.message_broker import MessageBroker
-from src.task_management.domain.task_repository import TaskRepository
+from src.task_management.domain.entities.task import Task
+from src.task_management.domain.value_objects.task_status import TaskStatus
+from src.task_management.domain.value_objects.task_priority import TaskPriority
+from src.core.message_broker.message_broker_interface import MessageBroker
+from src.task_management.domain.repositories.task_repository_interface import TaskRepositoryInterface
 
 # Create pytest hooks to suppress specific warnings
 def pytest_configure(config):
@@ -42,7 +44,7 @@ def mock_message_broker():
 @pytest.fixture
 def mock_task_repository():
     """Create a mock task repository for testing."""
-    repo = AsyncMock(spec=TaskRepository)
+    repo = AsyncMock(spec=TaskRepositoryInterface)
     # Configure common methods
     repo.save = AsyncMock()
     repo.get_by_id = AsyncMock()

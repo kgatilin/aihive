@@ -1,6 +1,7 @@
 import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+import asyncio
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase, AsyncIOMotorCollection
 
@@ -16,16 +17,14 @@ logger = logging.getLogger(__name__)
 class MongoDBTaskRepository(TaskRepositoryInterface):
     """MongoDB implementation of the task repository interface."""
     
-    def __init__(self, client: Optional[AsyncIOMotorClient] = None):
+    def __init__(self, client: AsyncIOMotorClient, database_name: str = "task_management"):
         """Initialize the repository with a MongoDB client."""
         self.config = Config()
-        self.client = client or AsyncIOMotorClient(self.config.database["connection_uri"])
-        self.db: AsyncIOMotorDatabase = self.client[self.config.database["database_name"]]
-        self.collection: AsyncIOMotorCollection = self.db["tasks"]
+        self.client = client
+        self.db = client[database_name]
+        self.collection = self.db.tasks
+        asyncio.create_task(self._create_indexes())
         
-        # Create indexes if needed
-        self._create_indexes()
-    
     async def _create_indexes(self) -> None:
         """Create database indexes for common queries."""
         try:

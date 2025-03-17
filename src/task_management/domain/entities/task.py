@@ -29,6 +29,7 @@ class Task:
         requirements_ids: Optional[List[str]] = None,
         parent_task_id: Optional[str] = None,
         tags: Optional[List[str]] = None,
+        artifact_ids: Optional[List[str]] = None,
         created_at: Optional[datetime] = None,
         updated_at: Optional[datetime] = None
     ):
@@ -50,7 +51,7 @@ class Task:
         self.updated_at = updated_at or self.created_at
         
         # Artifact information
-        self.artifact_ids: List[str] = []
+        self.artifact_ids = artifact_ids or []
         
         # Pending domain events
         self._pending_events: List[Any] = []

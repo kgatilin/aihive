@@ -114,13 +114,24 @@ class TestTaskService:
         # Verify repository and broker interactions
         mock_task_repository.get_by_id.assert_called_once_with(task_id)
         mock_task_repository.save.assert_called_once()
-        mock_message_broker.publish_event.assert_called_once()
         
-        # Verify the event published was a TaskAssignedEvent
-        published_event = mock_message_broker.publish_event.call_args[0][0]
-        assert isinstance(published_event, TaskAssignedEvent)
-        assert published_event.task_id == task_id
-        assert published_event.assignee == assignee
+        # Verify that publish_event was called for each event
+        assert mock_message_broker.publish_event.call_count == 2
+        
+        # Verify the events were published
+        calls = mock_message_broker.publish_event.call_args_list
+        
+        # First call should be with a TaskStatusChangedEvent
+        first_event = calls[0][0][0]
+        assert isinstance(first_event, TaskStatusChangedEvent)
+        assert first_event.task_id == task_id
+        assert first_event.new_status == TaskStatus.ASSIGNED.value
+        
+        # Second call should be with a TaskAssignedEvent
+        second_event = calls[1][0][0]
+        assert isinstance(second_event, TaskAssignedEvent)
+        assert second_event.task_id == task_id
+        assert second_event.assignee == assignee
     
     async def test_update_task_status(self, task_service, mock_task_repository, mock_message_broker, sample_task):
         """Test updating a task's status."""
