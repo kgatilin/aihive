@@ -45,20 +45,20 @@ def mock_product_requirement_repository():
     """Create a mock product requirement repository."""
     repo = MagicMock()
     
-    # Create a synchronous mock method that returns the product_requirement directly
-    def mock_create(product_requirement):
+    # Create an async mock method that returns the product_requirement directly
+    async def mock_create(product_requirement):
         # Just return the product requirement that was passed in
         return product_requirement
     
-    def mock_find_by_id(product_requirement_id):
+    async def mock_find_by_id(product_requirement_id):
         # Create a mock PRD with the desired ID
         prd = MagicMock(spec=ProductRequirement)
         prd.product_requirement_id = product_requirement_id
         return prd
     
-    # Set the mock methods as regular MagicMocks, not AsyncMocks
-    repo.create = MagicMock(side_effect=mock_create)
-    repo.find_by_id = MagicMock(side_effect=mock_find_by_id)
+    # Set the mock methods as AsyncMocks
+    repo.create = AsyncMock(side_effect=mock_create)
+    repo.find_by_id = AsyncMock(side_effect=mock_find_by_id)
     
     return repo
 

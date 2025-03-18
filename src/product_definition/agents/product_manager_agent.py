@@ -315,9 +315,8 @@ class ProductManagerAgent(AIAgent, ProductManagerAgentInterface):
             )
             
             # Save the PRD to the repository
-            saved_prd = self.product_requirement_repository.create(prd)
+            saved_prd = await self.product_requirement_repository.create(prd)
             logger.info(f"Created PRD {saved_prd.product_requirement_id} for task {task.task_id}")
-            
             return saved_prd
             
         except Exception as e:

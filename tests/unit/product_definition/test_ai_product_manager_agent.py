@@ -42,8 +42,11 @@ def mock_product_requirement_repository():
     """Mock the ProductRequirementRepository."""
     mock = MagicMock(spec=ProductRequirementRepositoryInterface)
     
-    # Setup the create method to return the input
-    mock.create.side_effect = lambda x: x
+    # Setup the create method to return the input using AsyncMock
+    async def mock_create(product_requirement):
+        return product_requirement
+    
+    mock.create = AsyncMock(side_effect=mock_create)
     
     return mock
 
