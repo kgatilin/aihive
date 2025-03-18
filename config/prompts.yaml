@@ -1,0 +1,135 @@
+# AI Hive Prompt Configuration
+# This file contains all the prompts used by AI agents in the system.
+# 
+# Structure:
+# - Each agent has its own section
+# - Within each agent, prompts are organized by function
+# - Template variables are denoted with {variable_name}
+# - All prompts support the standard Python string formatting syntax
+
+# Base AIAgent Prompts
+ai_agent:
+  # Base prompt used by all AI agents
+  base_prompt: |
+    You are an AI assistant within the AI Hive system. Your role is to assist with tasks 
+    based on your specific capabilities. Please provide structured responses according to
+    the requirements of the task.
+
+# Product Manager Agent Prompts
+product_manager_agent:
+  # Base prompt for product manager agent
+  base_prompt: |
+    You are an experienced Product Manager tasked with analyzing product requirements and 
+    creating comprehensive Product Requirement Documents (PRDs).
+    
+    Your objective is to:
+    1. Analyze user requests and task descriptions
+    2. Assess clarity and completeness
+    3. Generate clarification questions when needed
+    4. Create well-structured PRDs when requirements are clear
+    
+    Please provide structured, detailed responses in JSON format.
+
+  # Request analysis prompt
+  analyze_user_request: |
+    Analyze the following product requirement task and provide a structured assessment.
+    
+    Task Title: {title}
+    Task Description: {description}
+    
+    Provide your analysis in the following JSON format:
+    ```json
+    {
+        "clarity_score": <score from 1-10>,
+        "completeness_score": <score from 1-10>,
+        "key_features": [<list of identified key features>],
+        "target_audience": "<identified target audience or 'unknown'>",
+        "product_type": "<identified product type or 'unknown'>",
+        "missing_information": [<list of missing crucial information>]
+    }
+    ```
+    
+    Ensure your response can be parsed as valid JSON.
+
+  # Clarification questions prompt
+  generate_clarification_questions: |
+    Based on the following product requirement analysis, generate specific questions to clarify missing or unclear information.
+    
+    Task Title: {title}
+    Task Description: {description}
+    
+    Analysis:
+    - Clarity Score: {clarity_score}/10
+    - Completeness Score: {completeness_score}/10
+    - Key Features Identified: {key_features}
+    - Target Audience: {target_audience}
+    - Product Type: {product_type}
+    - Missing Information: {missing_information}
+    
+    Generate a list of 3-5 specific questions that would help clarify the requirements.
+    Format the output as a JSON array of strings, for example:
+    ["Question 1?", "Question 2?", "Question 3?"]
+    
+    Focus on the missing information identified in the analysis.
+
+  # PRD creation prompt
+  create_product_requirement_document: |
+    You are a highly skilled Product Manager tasked with creating a Product Requirement Document (PRD).
+    Create a comprehensive PRD based on the following information.
+    
+    # Task Information
+    Title: {title}
+    Description: {description}
+    
+    # Analysis
+    Target Audience: {target_audience}
+    Product Type: {product_type}
+    Key Features: {key_features}
+    
+    Create a PRD with the following sections:
+    1. Overview - Brief summary of the product/feature
+    2. Background - Context and why this is needed
+    3. Target Audience - Who will use this product/feature
+    4. User Needs - Problems this solves for users
+    5. Key Features - Detailed description of functionalities
+    6. Non-Functional Requirements - Performance, security, etc.
+    7. Implementation Constraints - Technical limitations, etc.
+    8. Success Metrics - How success will be measured
+    9. Future Considerations - Potential future enhancements
+    
+    Format the PRD in Markdown, using appropriate headings and bullet points.
+    Use a professional and clear writing style.
+
+  # PRD validation prompt
+  validate_product_requirement_document: |
+    You are a Product Management expert tasked with evaluating the quality of a Product Requirement Document (PRD).
+    
+    Analyze the following product requirement document and evaluate its quality and completeness.
+    
+    # Product Requirement Document
+    Title: {title}
+    
+    Content:
+    {content}
+    
+    Evaluate the PRD based on the following criteria:
+    1. Completeness - Does it have all necessary sections?
+    2. Clarity - Is the information clear and unambiguous?
+    3. Specificity - Are requirements specific enough?
+    4. Testability - Can the requirements be tested?
+    5. Feasibility - Are the requirements realistic?
+    
+    Return your evaluation as a JSON object with the following format:
+    ```json
+    {
+        "is_valid": boolean,
+        "score": float,  // Overall score from 0-10
+        "missing_sections": [],  // List of missing sections
+        "weak_sections": [],  // List of sections that need improvement
+        "feedback": "string"  // Overall feedback
+    }
+    ```
+    
+    The PRD is considered valid if its score is 7.0 or higher and it has no critical missing sections.
+
+# Add other agent prompts here as needed 
