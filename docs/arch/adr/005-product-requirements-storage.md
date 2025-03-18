@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 
@@ -22,13 +22,17 @@ We need to clarify the intended storage approach and define a clear path forward
 
 ## Decision
 
-We will implement a dual-storage approach for product requirements:
+We will implement a multi-storage approach for product requirements:
 
-1. **Primary Storage: MongoDB**
-   - MongoDB will be used as the operational database for product requirements
-   - Provides flexible schema for storing structured requirement documents
-   - Allows for efficient querying and indexing
-   - Supports the async operations needed for the application
+1. **Primary Operational Storage Options**
+   - **MongoDB**: Used as the default operational database for product requirements
+     - Provides flexible schema for storing structured requirement documents
+     - Allows for efficient querying and indexing
+     - Supports the async operations needed for the application
+   - **File-based Storage**: Simple JSON file-based storage as an alternative
+     - Provides persistence without requiring a database server
+     - Easier to set up for development and testing
+     - Each requirement stored as a separate JSON file with an index for quick lookups
 
 2. **Archival Storage: Git Repository**
    - Product requirements will be periodically exported to Markdown files in Git
@@ -37,7 +41,8 @@ We will implement a dual-storage approach for product requirements:
    - Facilitates collaboration through pull requests and reviews
 
 3. **Implementation Strategy**:
-   - The `ProductRequirementRepository` interface will be implemented by a MongoDB-based repository
+   - The `ProductRequirementRepository` interface has implementations for both MongoDB and file-based storage
+   - Storage type is configurable via configuration file or environment variables
    - An additional service will handle synchronization to Git
    - The in-memory implementation will be maintained for testing purposes
 
@@ -45,49 +50,57 @@ We will implement a dual-storage approach for product requirements:
 
 ### Positive
 
+- Multiple storage options provide flexibility for different deployment scenarios
 - MongoDB provides robust operational storage with efficient querying
+- File-based storage offers simplicity for development and small deployments
 - Git provides excellent version control and collaboration capabilities
-- Both systems have good ecosystem support and integrations
-- The dual approach leverages strengths of both systems
+- Configuration allows teams to choose the most appropriate storage for their needs
 
 ### Negative
 
-- Increased complexity with two storage systems
-- Potential synchronization issues between MongoDB and Git
-- Additional development effort to maintain both implementations
+- Increased complexity with multiple storage systems
+- Need to maintain multiple repository implementations
+- Potential synchronization issues between operational and archival storage
+- File-based storage may have performance limitations for large datasets
 
 ### Mitigations
 
-- Clear boundaries between operational usage (MongoDB) and archival/collaboration (Git)
+- Clear boundaries between operational usage and archival/collaboration
+- Comprehensive test suite to ensure all storage implementations behave consistently
 - Automated synchronization processes with validation
-- Comprehensive testing of both storage mechanisms
 - Fallback procedures if either system becomes unavailable
 
 ## Implementation Details
 
-1. **MongoDB Repository Implementation**:
-   - Implement `MongoDBProductRequirementRepository` that satisfies the `ProductRequirementRepositoryInterface`
+1. **Storage Configuration**:
+   - `product_definition.storage_type` configuration option (values: "mongodb", "file")
+   - Environment variable `PRODUCT_REQUIREMENT_STORAGE_TYPE` 
+   - Default is "mongodb" for backward compatibility
+
+2. **MongoDB Repository Implementation**:
+   - Implements `MongoDBProductRequirementRepository` that satisfies the `ProductRequirementRepositoryInterface`
    - Use MongoDB's document model for storing requirement documents
    - Implement proper indexes for efficient querying
    - Support for all CRUD operations
 
-2. **Git Synchronization Service**:
-   - Develop a service that exports requirements to Markdown files
+3. **File-based Repository Implementation**:
+   - Implements `FileProductRequirementRepository` that satisfies the `ProductRequirementRepositoryInterface`
+   - Each requirement stored as a separate JSON file
+   - Maintains an index file for quick lookups
+   - File path configurable via `product_definition.file_storage_dir` or `PRODUCT_REQUIREMENT_FILE_STORAGE_DIR` environment variable
+
+4. **Git Synchronization Service** (future work):
+   - Will develop a service that exports requirements to Markdown files
    - Schedule regular synchronization to Git
    - Include metadata in frontmatter for tracking
    - Handle conflict resolution
-
-3. **Configuration**:
-   - Environment variables for MongoDB connection
-   - Configuration options for Git repository location and credentials
-   - Toggle for enabling/disabling Git synchronization
 
 ## Alternatives Considered
 
 1. **MongoDB Only**:
    - Simpler implementation
    - Less storage redundancy
-   - Rejected due to lack of Git's collaboration features
+   - Rejected due to lack of Git's collaboration features and higher setup requirements
 
 2. **Git Only**:
    - Better alignment with documentation

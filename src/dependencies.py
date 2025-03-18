@@ -1,4 +1,9 @@
+"""
+Dependencies module for dependency injection.
+"""
+
 import logging
+import os
 from functools import lru_cache
 from typing import Optional
 from unittest.mock import AsyncMock
@@ -19,7 +24,7 @@ from src.product_definition.agents.product_manager_agent import ProductManagerAg
 from src.product_definition.agents.prd_template_tool import PRDTemplateTool
 from src.product_definition.domain.interfaces.product_requirement_repository_interface import ProductRequirementRepositoryInterface
 from src.product_definition.infrastructure.repositories.mongodb_product_requirement_repository import MongoDBProductRequirementRepository
-
+from src.product_definition.infrastructure.repositories.file_product_requirement_repository import FileProductRequirementRepository
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +45,7 @@ async def get_mongodb_client() -> AsyncIOMotorClient:
     if _mongodb_client is None:
         config = get_config()
         try:
-            _mongodb_client = AsyncIOMotorClient(config.database["connection_uri"])
+            _mongodb_client = AsyncIOMotorClient(config["database"]["connection_uri"])
             # Verify that the connection works
             await _mongodb_client.admin.command("ping")
             logger.info("Connected to MongoDB")
@@ -94,8 +99,23 @@ async def get_task_service(
 async def get_product_requirement_repository(
     mongodb_client: AsyncIOMotorClient = Depends(get_mongodb_client)
 ) -> ProductRequirementRepositoryInterface:
-    """Get a product requirement repository instance."""
-    repo = MongoDBProductRequirementRepository(client=mongodb_client)
+    """Get a product requirement repository instance based on configuration."""
+    config = get_config()
+    storage_type = config["product_definition"]["storage_type"].lower()
+    
+    if storage_type == "mongodb":
+        logger.info("Using MongoDB for product requirement storage")
+        repo = MongoDBProductRequirementRepository(client=mongodb_client)
+    elif storage_type == "file":
+        logger.info("Using file-based storage for product requirements")
+        storage_dir = config["product_definition"]["file_storage_dir"]
+        # Ensure the directory exists
+        os.makedirs(storage_dir, exist_ok=True)
+        repo = FileProductRequirementRepository(storage_dir=storage_dir)
+    else:
+        logger.warning(f"Unknown storage type '{storage_type}', falling back to MongoDB")
+        repo = MongoDBProductRequirementRepository(client=mongodb_client)
+    
     return repo
 
 
@@ -132,7 +152,7 @@ async def get_product_manager_agent(
             product_requirement_repository=product_requirement_repository,
             tool_registry=tool_registry,
             agent_id="product-manager-agent",
-            model_name=config.ai.get("default_model", "gpt-4-turbo-preview")
+            model_name=config["ai"]["default_model"]
         )
     return _product_manager_agent
 
@@ -149,6 +169,6 @@ async def get_orchestrator_agent(
             task_service=task_service,
             agents={"product-manager-agent": product_manager_agent},
             agent_id="orchestrator-agent",
-            model_name=config.ai.get("default_model", "gpt-4-turbo-preview")
+            model_name=config["ai"]["default_model"]
         )
     return _orchestrator_agent 

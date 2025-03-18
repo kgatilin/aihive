@@ -161,6 +161,39 @@ pytest
 - `PUT /tasks/{task_id}/complete` - Complete a task
 - `PUT /tasks/{task_id}/cancel` - Cancel a task
 
+## Storage Options
+
+### Product Requirements Storage
+
+The system provides multiple storage options for product requirements:
+
+1. **MongoDB Storage (Default)**
+   - Robust document database for production use
+   - Supports efficient querying and indexing
+   - Requires MongoDB server
+
+2. **File-based Storage**
+   - Simple JSON file-based storage
+   - Each requirement stored as a separate JSON file
+   - No database server required
+   - Good for development and simpler deployments
+
+To configure the storage type, set one of the following:
+
+```bash
+# In .env file
+PRODUCT_REQUIREMENT_STORAGE_TYPE=mongodb  # or "file"
+PRODUCT_REQUIREMENT_FILE_STORAGE_DIR=data/product_requirements  # For file-based storage
+```
+
+Or via YAML configuration:
+
+```yaml
+product_definition:
+  storage_type: mongodb  # or "file"
+  file_storage_dir: data/product_requirements  # For file-based storage
+```
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details. 

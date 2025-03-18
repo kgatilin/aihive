@@ -1,0 +1,36 @@
+# AIHive Example Configuration File
+# Copy this file to config.yaml and adjust settings as needed
+
+# Logging configuration
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Database configuration
+database:
+  type: mongodb
+  connection_uri: mongodb://localhost:27017/
+  
+# AI configuration
+ai:
+  default_model: gpt-4-turbo-preview
+  openai_api_key: ""
+  anthropic_api_key: ""
+
+# Message broker configuration
+message_broker:
+  type: rabbitmq
+  connection_uri: amqp://guest:guest@localhost:5672/
+
+# API configuration
+api:
+  host: 0.0.0.0
+  port: 8000
+  debug: false
+
+# Product definition domain configuration
+product_definition:
+  # Storage options: "mongodb" or "file"
+  storage_type: mongodb
+  # Directory for file-based storage (when storage_type is "file")
+  file_storage_dir: data/product_requirements 
