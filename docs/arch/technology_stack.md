@@ -38,6 +38,7 @@ This document specifies the recommended technology stack for implementing the AI
 |-----------|------------------------|--------------|-----------|
 | Primary Database | PostgreSQL | MySQL, MariaDB | ACID compliance, JSON support, robust transaction handling |
 | Document Storage | MongoDB | Couchbase, Amazon DocumentDB | Flexible schema for storing requirements and execution plans |
+| File-based Storage | JSON Files | YAML, XML | Simple, configurable alternative for product requirements storage |
 | Caching | Redis | Memcached | In-memory data structure store for high-performance caching |
 | Event Store | Apache Kafka | RabbitMQ, AWS Kinesis | High-throughput, distributed event storage and processing |
 

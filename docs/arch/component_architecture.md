@@ -289,17 +289,34 @@ sequenceDiagram
 
 ## Integration Points
 
-### Git Integration
+### Product Requirements Storage
 
-- **PRD Storage**: 
-  - PRDs stored as markdown files in git repository
-  - Versioned alongside code
-  - Referenced by direct links in tasks
+Product requirements can be stored in multiple ways:
 
-- **Code Storage**:
-  - Generated code committed to repositories
-  - Includes documentation and tests
-  - PR-based review workflow
+- **MongoDB Storage** (default): 
+  - Document database for efficient querying
+  - Flexible schema for structured requirement storage
+  - Suitable for production environments
+
+- **File-based Storage**:
+  - JSON files for simple development environments
+  - Each requirement stored as a separate file
+  - Index file maintained for quick lookups
+  - Suitable for development and small deployments
+
+- **Git-based Storage**: 
+  - Requirements exported to markdown in Git
+  - Human-readable format for collaboration
+  - Version history for requirements
+  - Primary archival and collaboration mechanism
+
+The storage mechanism is configurable via environment variables or configuration files, allowing teams to select the most appropriate option. This is detailed in [ADR-005: Product Requirements Storage Mechanism](adr/005-product-requirements-storage.md).
+
+### Code Storage
+
+- Generated code committed to repositories
+- Includes documentation and tests
+- PR-based review workflow
 
 ### Notification System
 

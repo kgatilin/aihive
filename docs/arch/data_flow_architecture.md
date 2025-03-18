@@ -127,12 +127,21 @@ graph TD
 
 ## Storage Systems
 
-### Git Repository
+### Product Requirements Storage
 
-- Primary storage for all textual artifacts
-- Version control for requirements, code, and tests
-- Branching strategy for parallel development
-- Pull request workflow for code reviews
+Requirements data can be stored in multiple systems as described in [ADR-005: Product Requirements Storage Mechanism](adr/005-product-requirements-storage.md):
+
+1. **Primary Operational Storage**:
+   - **MongoDB** (default): Document database for efficient querying and complex data structures
+   - **File-based Storage**: Simple JSON file storage with an index file for lookups
+   
+2. **Git Repository**:
+   - Archival storage for requirements as markdown files
+   - Version control and history tracking
+   - Human-readable format for review and editing
+   - Pull request workflow for collaborative editing
+
+The storage mechanism is configurable via environment variables or configuration files, allowing teams to choose the most appropriate option for their development needs. Data synchronization between operational storage and Git repository ensures consistency across storage systems.
 
 ### Task Tracking Database
 
