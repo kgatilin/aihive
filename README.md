@@ -25,9 +25,18 @@ src/
 ├── product_definition/        # Product definition bounded context
 │   ├── agents/                # Product Manager Agent and related tools
 │   ├── domain/                # Domain model for product requirements
+│   ├── application/           # Application services including task polling
 │   └── infrastructure/        # Infrastructure implementations
+│       └── repositories/      # Repository implementations
+├── orchestration/             # Orchestration bounded context
+│   ├── application/           # Application services including task scanning
+│   └── domain/                # Domain model for orchestration
+├── infrastructure/            # Shared infrastructure components
+│   ├── message_queue/         # Message queue and event handling
+│   └── persistence/           # Shared persistence utilities
 ├── config.py                  # Application configuration
 ├── dependencies.py            # Dependency injection
+├── workflow_integration.py    # Workflow integration service
 └── main.py                    # Application entry point
 ```
 
@@ -39,6 +48,7 @@ src/
 - Asynchronous task orchestration
 - RESTful API
 - AI-powered agents for task processing
+- Workflow integration between bounded contexts
 
 ## Domain Model
 
@@ -97,6 +107,34 @@ To create a new AI-powered agent:
 1. Extend the `AIAgent` base class in `src/core/agent/ai_agent.py`
 2. Implement the required methods, especially `_setup_prompt()` to define the agent's system prompt
 3. Register your agent in the dependency injection system in `src/dependencies.py`
+
+## Workflow Integration
+
+The system implements an asynchronous workflow integration between bounded contexts using an event-driven architecture. This enables the orchestration of complex workflows across the system.
+
+For detailed information, see [Workflow Integration Documentation](docs/workflow_integration.md).
+
+### Key Components
+
+- **Message Queue**: Central communication mechanism supporting publishing and subscribing to events and commands
+- **Domain Events and Commands**: Strongly typed messages with metadata
+- **Task Scanning Service**: Periodically scans for tasks that need attention
+- **Task Polling Service**: Polls for tasks assigned to agent pools and delegates processing
+- **Error Handling**: Retry mechanisms, dead letter queues, and comprehensive error logging
+- **Event Monitoring**: Tracking of events, detection of stalled workflows, and alerting
+
+### Usage
+
+To start the workflow integration service:
+
+```bash
+# Using in-memory message queue (for development)
+python src/workflow_integration.py
+
+# Using RabbitMQ (for production)
+RABBITMQ_HOST=rabbitmq-server RABBITMQ_USERNAME=admin RABBITMQ_PASSWORD=password \
+python src/workflow_integration.py --message-queue-type rabbitmq
+```
 
 ## Getting Started
 
@@ -193,6 +231,20 @@ product_definition:
   storage_type: mongodb  # or "file"
   file_storage_dir: data/product_requirements  # For file-based storage
 ```
+
+## Architecture Documentation
+
+For more details about the system architecture, see:
+- [Architecture Overview](docs/arch/architecture_overview.md)
+- [Component Architecture](docs/arch/component_architecture.md)
+- [Data Flow Architecture](docs/arch/data_flow_architecture.md)
+- [Technology Stack](docs/arch/technology_stack.md)
+- [Workflow Integration](docs/workflow_integration.md)
+
+## Architecture Decision Records (ADRs)
+
+- [ADR-006: Asynchronous Workflow Integration](docs/arch/adr/006-asynchronous-workflow-integration.md)
+- [ADR-005: Product Requirements Storage Mechanism](docs/arch/adr/005-product-requirements-storage.md)
 
 ## License
 
