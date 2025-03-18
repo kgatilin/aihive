@@ -8,12 +8,14 @@ correctly implement the ProductRequirementRepositoryInterface.
 import os
 import uuid
 import pytest
+import pytest_asyncio
 import tempfile
 import shutil
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.errors import ServerSelectionTimeoutError
 
 from src.product_definition.domain.entities.product_requirement import ProductRequirement
 from src.product_definition.domain.interfaces.product_requirement_repository_interface import ProductRequirementRepositoryInterface
@@ -30,21 +32,38 @@ def temp_storage_dir():
     shutil.rmtree(temp_dir)
 
 
-@pytest.fixture
-async def mongodb_client():
-    """Create a MongoDB client for testing."""
+@pytest_asyncio.fixture
+async def mongodb_client() -> Optional[AsyncIOMotorClient]:
+    """
+    Create a MongoDB client for testing.
+    Returns None if MongoDB is not available.
+    """
     # Use a test database
     connection_uri = os.environ.get("MONGODB_CONNECTION_URI", "mongodb://localhost:27017/")
-    client = AsyncIOMotorClient(connection_uri)
-    yield client
+    client = AsyncIOMotorClient(connection_uri, serverSelectionTimeoutMS=2000)
     
-    # Clean up the test database
-    await client.aihive_test.product_requirements.delete_many({})
+    # Check if MongoDB is available
+    try:
+        await client.admin.command("ping")
+        # MongoDB is available, yield the client
+        yield client
+        
+        # Clean up the test database
+        await client.aihive_test.product_requirements.delete_many({})
+    except ServerSelectionTimeoutError:
+        # MongoDB is not available, yield None
+        yield None
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mongodb_repository(mongodb_client):
-    """Create a MongoDB repository instance for testing."""
+    """
+    Create a MongoDB repository instance for testing.
+    Returns None if MongoDB is not available.
+    """
+    if mongodb_client is None:
+        pytest.skip("MongoDB is not available")
+    
     repo = MongoDBProductRequirementRepository(
         client=mongodb_client,
         database_name="aihive_test",
@@ -53,7 +72,7 @@ async def mongodb_repository(mongodb_client):
     return repo
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def file_repository(temp_storage_dir):
     """Create a file repository instance for testing."""
     repo = FileProductRequirementRepository(storage_dir=temp_storage_dir)
@@ -77,6 +96,7 @@ def sample_requirement_data():
     }
 
 
+@pytest.mark.asyncio
 async def run_repository_test(repo: ProductRequirementRepositoryInterface, req_data: Dict[str, Any]):
     """
     Run standard tests against a repository implementation.
@@ -149,6 +169,9 @@ async def run_repository_test(repo: ProductRequirementRepositoryInterface, req_d
 @pytest.mark.asyncio
 async def test_mongodb_repository(mongodb_repository, sample_requirement_data):
     """Test the MongoDB repository implementation."""
+    if mongodb_repository is None:
+        pytest.skip("MongoDB is not available")
+        
     await run_repository_test(mongodb_repository, sample_requirement_data)
 
 
@@ -165,6 +188,9 @@ async def test_both_repositories_with_same_interface(
     mongodb_repository, file_repository, sample_requirement_data
 ):
     """Test that both repositories implement the same interface correctly."""
+    if mongodb_repository is None:
+        pytest.skip("MongoDB is not available")
+    
     # Test MongoDB repository
     mongo_data = sample_requirement_data.copy()
     mongo_data["product_requirement_id"] = f"mongo-{uuid.uuid4()}"

@@ -49,6 +49,7 @@ def sample_product_requirement():
     )
 
 
+@pytest.mark.asyncio
 async def test_file_repository_initialization(file_repository, temp_storage_dir):
     """Test that the repository is initialized with the correct directory."""
     assert file_repository._storage_dir == temp_storage_dir
@@ -58,6 +59,7 @@ async def test_file_repository_initialization(file_repository, temp_storage_dir)
     assert os.path.exists(os.path.join(temp_storage_dir, "index.json"))
 
 
+@pytest.mark.asyncio
 async def test_create_product_requirement(file_repository, sample_product_requirement, temp_storage_dir):
     """Test creating a product requirement in the file repository."""
     # Create a product requirement
@@ -88,6 +90,7 @@ async def test_create_product_requirement(file_repository, sample_product_requir
         assert index[sample_product_requirement.product_requirement_id]["title"] == sample_product_requirement.title
 
 
+@pytest.mark.asyncio
 async def test_find_by_id(file_repository, sample_product_requirement):
     """Test finding a product requirement by ID."""
     # Create a product requirement
@@ -110,6 +113,7 @@ async def test_find_by_id(file_repository, sample_product_requirement):
     assert found_requirement.metadata == sample_product_requirement.metadata
 
 
+@pytest.mark.asyncio
 async def test_find_by_id_not_found(file_repository):
     """Test finding a product requirement by ID when it doesn't exist."""
     # Find a non-existent requirement
@@ -119,6 +123,7 @@ async def test_find_by_id_not_found(file_repository):
     assert found_requirement is None
 
 
+@pytest.mark.asyncio
 async def test_update_product_requirement(file_repository, sample_product_requirement):
     """Test updating a product requirement."""
     # Create a product requirement
@@ -152,6 +157,7 @@ async def test_update_product_requirement(file_repository, sample_product_requir
         assert index[sample_product_requirement.product_requirement_id]["status"] == "review"
 
 
+@pytest.mark.asyncio
 async def test_update_non_existent_requirement(file_repository, sample_product_requirement):
     """Test updating a product requirement that doesn't exist."""
     # Try to update a non-existent requirement
@@ -162,6 +168,7 @@ async def test_update_non_existent_requirement(file_repository, sample_product_r
     assert updated_requirement == sample_product_requirement
 
 
+@pytest.mark.asyncio
 async def test_delete_product_requirement(file_repository, sample_product_requirement, temp_storage_dir):
     """Test deleting a product requirement."""
     # Create a product requirement
@@ -183,6 +190,7 @@ async def test_delete_product_requirement(file_repository, sample_product_requir
         assert sample_product_requirement.product_requirement_id not in index
 
 
+@pytest.mark.asyncio
 async def test_delete_non_existent_requirement(file_repository):
     """Test deleting a product requirement that doesn't exist."""
     # Try to delete a non-existent requirement
@@ -192,6 +200,7 @@ async def test_delete_non_existent_requirement(file_repository):
     assert result is False
 
 
+@pytest.mark.asyncio
 async def test_find_by_task_id(file_repository):
     """Test finding product requirements by task ID."""
     # Create several product requirements with different task IDs
@@ -221,6 +230,7 @@ async def test_find_by_task_id(file_repository):
     assert {req.product_requirement_id for req in found_requirements} == {"test-req-1", "test-req-2"}
 
 
+@pytest.mark.asyncio
 async def test_find_by_status(file_repository):
     """Test finding product requirements by status."""
     # Create several product requirements with different statuses
@@ -252,6 +262,7 @@ async def test_find_by_status(file_repository):
     assert found_approved_requirements[0].status == "approved"
 
 
+@pytest.mark.asyncio
 async def test_find_by_created_by(file_repository):
     """Test finding product requirements by creator."""
     # Create several product requirements with different creators
@@ -283,6 +294,7 @@ async def test_find_by_created_by(file_repository):
     assert found_requirements_user2[0].created_by == "user2"
 
 
+@pytest.mark.asyncio
 async def test_search(file_repository):
     """Test searching for product requirements with criteria."""
     # Create several product requirements with different attributes
