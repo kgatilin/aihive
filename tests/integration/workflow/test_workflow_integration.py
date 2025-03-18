@@ -169,6 +169,9 @@ class TestWorkflowIntegration(unittest.TestCase):
         service.start()
         
         try:
+            # Wait for service to start and monitoring thread to be ready
+            time.sleep(0.5)
+            
             # Create a workflow without completing it
             correlation_id = "test-stalled-workflow"
             event_payload = {

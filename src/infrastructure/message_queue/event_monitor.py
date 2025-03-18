@@ -471,7 +471,7 @@ class EventMonitor:
                 logger.error(f"Error in monitoring loop: {e}")
             
             # Sleep before next check
-            time.sleep(10)
+            time.sleep(1)  # Check every second instead of every 10 seconds
     
     def _check_for_stalled_workflows(self):
         """Check for workflows that haven't been updated recently."""
