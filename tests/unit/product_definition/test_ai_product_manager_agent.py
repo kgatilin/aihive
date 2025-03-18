@@ -7,7 +7,7 @@ from src.core.config import Config
 from src.task_management.models.task import Task, TaskStatus, TaskPriority
 from src.product_definition.agents.product_manager_agent import ProductManagerAgent
 from src.product_definition.models.product_requirement import ProductRequirement as PRD
-from src.product_definition.repositories.product_requirement_repository import ProductRequirementRepository
+from src.product_definition.domain.interfaces.product_requirement_repository_interface import ProductRequirementRepositoryInterface
 from src.task_management.services.task_service import TaskService
 
 
@@ -40,7 +40,7 @@ def mock_task_service():
 @pytest.fixture
 def mock_product_requirement_repository():
     """Mock the ProductRequirementRepository."""
-    mock = MagicMock(spec=ProductRequirementRepository)
+    mock = MagicMock(spec=ProductRequirementRepositoryInterface)
     
     # Setup the create method to return the input
     mock.create.side_effect = lambda x: x

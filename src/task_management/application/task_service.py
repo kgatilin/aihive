@@ -3,7 +3,7 @@ from typing import Optional, List, Dict, Any
 
 from src.core.common.message_broker import MessageBroker
 from src.task_management.domain.task import Task, TaskStatus, TaskPriority
-from src.task_management.domain.task_repository import TaskRepository
+from src.task_management.domain.repositories.task_repository_interface import TaskRepositoryInterface
 from src.core.domain_events.task_events import TaskCreatedEvent
 
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class TaskService:
     """Application service for task management operations."""
     
-    def __init__(self, task_repository: TaskRepository, message_broker: MessageBroker):
+    def __init__(self, task_repository: TaskRepositoryInterface, message_broker: MessageBroker):
         self.task_repository = task_repository
         self.message_broker = message_broker
     

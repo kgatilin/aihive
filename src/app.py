@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from aiohttp import web
 
 from src.core.common.message_broker import RabbitMQBroker
-from src.task_management.infrastructure.mongo_task_repository import MongoTaskRepository
+from src.task_management.infrastructure.repositories.mongodb_task_repository import MongoDBTaskRepository
 from src.task_management.application.task_service import TaskService
 from src.orchestration.domain.orchestrator_agent import ProductRefinementOrchestrator
 from src.human_interaction.api.task_api import TaskApi, setup_routes
@@ -63,7 +63,7 @@ async def main():
         await message_broker.connect()
         logger.info("Connected to message broker")
         
-        task_repository = MongoTaskRepository()
+        task_repository = MongoDBTaskRepository()
         await task_repository.connect()
         logger.info("Connected to task repository")
         

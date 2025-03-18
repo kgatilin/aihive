@@ -11,7 +11,7 @@ from src.core.config import Config
 from src.task_management.models.task import Task, TaskStatus, TaskPriority
 from src.product_definition.agents.product_manager_agent import ProductManagerAgent
 from src.product_definition.models.product_requirement import ProductRequirement
-from src.product_definition.repositories.product_requirement_repository import ProductRequirementRepository
+from src.product_definition.domain.interfaces.product_requirement_repository_interface import ProductRequirementRepositoryInterface
 from src.task_management.services.task_service import TaskService
 from src.core.agent.tool_registry import ToolRegistry
 

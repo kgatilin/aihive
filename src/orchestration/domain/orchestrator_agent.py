@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from src.config import Config
 from src.core.common.message_broker import MessageBroker
 from src.task_management.domain.task import Task, TaskStatus
-from src.task_management.domain.task_repository import TaskRepository
+from src.task_management.domain.repositories.task_repository_interface import TaskRepositoryInterface
 from src.task_management.application.task_service import TaskService
 
 
