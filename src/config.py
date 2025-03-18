@@ -43,6 +43,13 @@ class Config:
             "polling_interval_seconds": int(os.getenv("AGENT_POLLING_INTERVAL", "60")),
             "max_concurrent_tasks": int(os.getenv("AGENT_MAX_CONCURRENT_TASKS", "10")),
         }
+        
+        # AI configuration
+        self.ai = {
+            "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
+            "default_model": os.getenv("OPENAI_DEFAULT_MODEL", "gpt-4-turbo-preview"),
+            "temperature": float(os.getenv("OPENAI_TEMPERATURE", "0.7")),
+        }
     
     def _parse_cors_origins(self) -> List[str]:
         """Parse CORS origins from environment variable."""
@@ -59,7 +66,16 @@ class Config:
             "api": self.api,
             "logging": self.logging,
             "agent": self.agent,
+            "ai": self.ai,
         }
+    
+    @property
+    def openai_api_key(self) -> str:
+        """Get the OpenAI API key."""
+        api_key = self.ai["openai_api_key"]
+        if not api_key:
+            logger.warning("OpenAI API key is not set. AI features will not work properly.")
+        return api_key
 
 
 @lru_cache()

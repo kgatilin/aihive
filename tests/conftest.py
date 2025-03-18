@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 import warnings
+import os
 
 from src.task_management.domain.entities.task import Task
 from src.task_management.domain.value_objects.task_status import TaskStatus
@@ -87,4 +88,16 @@ def sample_task_dict():
         "tags": [],
         "created_at": datetime(2023, 1, 1, 12, 0, 0),
         "updated_at": datetime(2023, 1, 1, 12, 0, 0)
-    } 
+    }
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_environment():
+    """Set up the environment for tests."""
+    # Set testing environment variable
+    os.environ["TESTING"] = "true"
+    
+    yield
+    
+    # Clean up
+    if "TESTING" in os.environ:
+        del os.environ["TESTING"] 

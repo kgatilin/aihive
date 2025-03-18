@@ -19,4 +19,8 @@ httpx==0.25.1
 # Utilities
 python-dotenv==1.0.0
 python-multipart==0.0.6
-email-validator==2.1.0 
+email-validator==2.1.0
+
+# LangChain
+langchain==0.1.12
+langchain-openai==0.0.8 

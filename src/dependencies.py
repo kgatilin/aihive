@@ -13,6 +13,13 @@ from src.task_management.application.services.task_service import TaskService
 from src.task_management.domain.repositories.task_repository_interface import TaskRepositoryInterface
 from src.task_management.infrastructure.repositories.mongodb_task_repository import MongoDBTaskRepository
 
+from src.core.agent.orchestrator_agent import OrchestratorAgent
+from src.core.agent.tool_registry import ToolRegistry
+from src.product_definition.agents.product_manager_agent import ProductManagerAgent
+from src.product_definition.agents.prd_template_tool import PRDTemplateTool
+from src.product_definition.domain.interfaces.product_requirement_repository_interface import ProductRequirementRepositoryInterface
+from src.product_definition.infrastructure.repositories.mongodb_product_requirement_repository import MongoDBProductRequirementRepository
+
 
 logger = logging.getLogger(__name__)
 
@@ -81,4 +88,67 @@ async def get_task_service(
     message_broker: MessageBroker = Depends(get_message_broker)
 ) -> TaskService:
     """Get a task service instance."""
-    return TaskService(task_repository, message_broker) 
+    return TaskService(task_repository, message_broker)
+
+
+async def get_product_requirement_repository(
+    mongodb_client: AsyncIOMotorClient = Depends(get_mongodb_client)
+) -> ProductRequirementRepositoryInterface:
+    """Get a product requirement repository instance."""
+    repo = MongoDBProductRequirementRepository(client=mongodb_client)
+    return repo
+
+
+# Tool registry as a singleton
+_tool_registry: Optional[ToolRegistry] = None
+
+
+def get_tool_registry() -> ToolRegistry:
+    """Get the tool registry instance."""
+    global _tool_registry
+    if _tool_registry is None:
+        _tool_registry = ToolRegistry()
+        # Register common tools
+        _tool_registry.register_tool(PRDTemplateTool())
+    return _tool_registry
+
+
+# AI agents are lazy-loaded singletons
+_product_manager_agent: Optional[ProductManagerAgent] = None
+_orchestrator_agent: Optional[OrchestratorAgent] = None
+
+
+async def get_product_manager_agent(
+    task_service: TaskService = Depends(get_task_service),
+    product_requirement_repository: ProductRequirementRepositoryInterface = Depends(get_product_requirement_repository),
+    tool_registry: ToolRegistry = Depends(get_tool_registry)
+) -> ProductManagerAgent:
+    """Get the Product Manager Agent instance."""
+    global _product_manager_agent
+    if _product_manager_agent is None:
+        config = get_config()
+        _product_manager_agent = ProductManagerAgent(
+            task_service=task_service,
+            product_requirement_repository=product_requirement_repository,
+            tool_registry=tool_registry,
+            agent_id="product-manager-agent",
+            model_name=config.ai.get("default_model", "gpt-4-turbo-preview")
+        )
+    return _product_manager_agent
+
+
+async def get_orchestrator_agent(
+    task_service: TaskService = Depends(get_task_service),
+    product_manager_agent: ProductManagerAgent = Depends(get_product_manager_agent)
+) -> OrchestratorAgent:
+    """Get the Orchestrator Agent instance."""
+    global _orchestrator_agent
+    if _orchestrator_agent is None:
+        config = get_config()
+        _orchestrator_agent = OrchestratorAgent(
+            task_service=task_service,
+            agents={"product-manager-agent": product_manager_agent},
+            agent_id="orchestrator-agent",
+            model_name=config.ai.get("default_model", "gpt-4-turbo-preview")
+        )
+    return _orchestrator_agent 

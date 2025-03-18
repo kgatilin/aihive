@@ -10,7 +10,8 @@ The project follows a clean architecture with Domain-Driven Design (DDD) princip
 src/
 ├── core/                      # Core domain components
 │   ├── domain_events/         # Domain events
-│   └── message_broker/        # Message broker interface and implementations
+│   ├── message_broker/        # Message broker interface and implementations
+│   └── agent/                 # Agent interfaces and implementations
 ├── task_management/           # Task management bounded context
 │   ├── api/                   # API controllers
 │   ├── application/           # Application services
@@ -21,8 +22,10 @@ src/
 │   │   └── value_objects/     # Value objects
 │   └── infrastructure/        # Infrastructure implementations
 │       └── repositories/      # Repository implementations
-├── orchestration/             # Orchestration bounded context
-│   └── domain/                # Orchestration domain model
+├── product_definition/        # Product definition bounded context
+│   ├── agents/                # Product Manager Agent and related tools
+│   ├── domain/                # Domain model for product requirements
+│   └── infrastructure/        # Infrastructure implementations
 ├── config.py                  # Application configuration
 ├── dependencies.py            # Dependency injection
 └── main.py                    # Application entry point
@@ -35,6 +38,7 @@ src/
 - Event-driven architecture
 - Asynchronous task orchestration
 - RESTful API
+- AI-powered agents for task processing
 
 ## Domain Model
 
@@ -60,6 +64,40 @@ The system uses domain events to communicate state changes:
 - TaskCompletedEvent
 - TaskCanceledEvent
 
+## AI-Powered Agents
+
+AIHive includes AI-powered agents that utilize Large Language Models (LLMs) to perform intelligent tasks:
+
+### Available Agents
+
+1. **Product Manager Agent**: Analyzes product requirements, generates clarification questions, and creates comprehensive PRD documents.
+2. **Orchestrator Agent**: Coordinates between multiple specialized agents, distributing tasks based on agent capabilities.
+
+### Agent Architecture
+
+- Base `AIAgent` class that handles common LLM operations
+- LangChain integration for structured LLM interactions
+- Tool integration framework for extensibility
+- Error handling with fallback mechanisms
+
+### Configuration
+
+The AI agents require OpenAI API access. Set the following environment variables:
+
+```
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_DEFAULT_MODEL=gpt-4-turbo-preview  # or another compatible model
+OPENAI_TEMPERATURE=0.7  # adjust for more/less creative responses
+```
+
+### Adding New AI Agents
+
+To create a new AI-powered agent:
+
+1. Extend the `AIAgent` base class in `src/core/agent/ai_agent.py`
+2. Implement the required methods, especially `_setup_prompt()` to define the agent's system prompt
+3. Register your agent in the dependency injection system in `src/dependencies.py`
+
 ## Getting Started
 
 ### Prerequisites
@@ -67,6 +105,7 @@ The system uses domain events to communicate state changes:
 - Python 3.9+
 - MongoDB
 - RabbitMQ
+- OpenAI API key (for AI agents)
 
 ### Installation
 
@@ -91,6 +130,7 @@ The system uses domain events to communicate state changes:
    ```
    export MONGODB_URI=mongodb://localhost:27017
    export RABBITMQ_URI=amqp://guest:guest@localhost:5672/
+   export OPENAI_API_KEY=your_openai_api_key  # Required for AI agents
    ```
 
 5. Run the application:
