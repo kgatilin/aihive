@@ -3,6 +3,7 @@ venv/
 env/
 ENV/
 .venv/
+venv311/
 
 # Python bytecode files
 __pycache__/
@@ -43,3 +44,8 @@ pip.conf
 
 # Logs
 *.log
+
+# Cursor specific files
+.cursor/
+.cursor-*
+cursor_rules.md
