@@ -123,6 +123,37 @@ For detailed information, see [Workflow Integration Documentation](docs/workflow
 - **Error Handling**: Retry mechanisms, dead letter queues, and comprehensive error logging
 - **Event Monitoring**: Tracking of events, detection of stalled workflows, and alerting
 
+### Message Broker Options
+
+The system supports multiple message broker implementations:
+
+1. **RabbitMQ Broker (Default for Production)**
+   - Robust message broker for distributed systems
+   - Supports message persistence, high availability, and clustering
+   - Requires a RabbitMQ server
+
+2. **In-Memory Broker**
+   - Simple in-memory implementation for development and testing
+   - No external dependencies required
+   - Allows running multiple agents within a single process
+   - Not suitable for production or distributed deployments
+
+To configure the message broker type, set one of the following:
+
+```bash
+# In .env file
+MESSAGE_BROKER_TYPE=rabbitmq  # or "in_memory"
+RABBITMQ_CONNECTION_URI=amqp://guest:guest@localhost:5672/  # For RabbitMQ
+```
+
+Or via YAML configuration:
+
+```yaml
+message_broker:
+  type: rabbitmq  # or "in_memory"
+  connection_uri: amqp://guest:guest@localhost:5672/  # For RabbitMQ
+```
+
 ### Usage
 
 To start the workflow integration service:
@@ -243,6 +274,7 @@ For more details about the system architecture, see:
 
 ## Architecture Decision Records (ADRs)
 
+- [ADR-007: Configurable Message Broker Implementation](docs/arch/adr/007-configurable-message-broker.md)
 - [ADR-006: Asynchronous Workflow Integration](docs/arch/adr/006-asynchronous-workflow-integration.md)
 - [ADR-005: Product Requirements Storage Mechanism](docs/arch/adr/005-product-requirements-storage.md)
 
